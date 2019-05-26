@@ -1,8 +1,8 @@
 TARGET = libcab202_teensy.a
 
-SRC = graphics.c lcd.c ram_utils.c
-HDR = graphics.h lcd.h ram_utils.h macros.h
-OBJ = graphics.o lcd.o ram_utils.o
+SRC = graphics.c lcd.c ram_utils.c cab202_adc.c
+HDR = graphics.h lcd.h ram_utils.h macros.h cab202_adc.h
+OBJ = graphics.o lcd.o ram_utils.o cab202_adc.o
 
 FLAGS = \
 	-mmcu=atmega32u4 \
@@ -14,7 +14,7 @@ FLAGS = \
 	-fpack-struct \
 	-Wall \
 	-Werror \
-	-std=gnu99 
+	-std=gnu99
 
 all: $(TARGET)
 
@@ -24,6 +24,6 @@ clean:
 
 rebuild: clean all
 
-$(TARGET) : $(HDR) $(SRC) 
+$(TARGET) : $(HDR) $(SRC)
 	avr-gcc -c $(SRC) $(FLAGS)
 	avr-ar rcs $(TARGET) $(OBJ)
