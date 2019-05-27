@@ -73,9 +73,32 @@ int random_int(int min, int max){
     return (rand() % (max + 1 - min)) + min;
 }
 
+
+bool is_opaque(int x, int y, int x0, int y0, int w0, int h0, char pixels[]){
+    return x >= x0 && x < x0 + w0
+        && y >= y0 && y < y0 + h0
+        && pixels[(x-x0) + (y-y0)*w0] != ' ';
+}
+
+
+bool pixel_collision(int x0, int y0, int w0, int h0, char pixels0[], int x1, int y1, int w1, int h1, char pixels1[]){
+    for ( int j = 0; j < h0; j++ ){
+        for (int i = 0; i < w0; i++){
+            int x = x0 + i;
+            int y = y0 + j;
+
+            if ( is_opaque(x, y, x0, y0, w0, h0, pixels0) && is_opaque(x, y, x1, y1, w1, h1, pixels1)){
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 void spawn_asteroids(){
     asteroid_count = 3;
-    for(int i = 0; i <= 3; i++){
+    for(int i = 0; i < asteroid_count; i++){
         asteroids_x[i] = random_int(0, LCD_X-7);
         asteroids_y[i] = -7;
     }
@@ -150,6 +173,14 @@ void remove_plasma(int index){
     plasma_count--;
 }
 
+void remove_asteroid(int index){
+    for(int i = index; i < asteroid_count-1; i++){
+        asteroids_x[i] = asteroids_x[i+1];
+        asteroids_y[i] = asteroids_y[i+1];
+    }
+    asteroid_count--;
+}
+
 void process_plasma(){
     for(int i = 0; i < plasma_count; i++){
         int x1 = plasma_x[i];
@@ -214,6 +245,20 @@ void process_ship(){
     }
 }
 
+void process_collisions(){
+
+    for(int i = 0; i < plasma_count; i++){
+        for(int j = 0; j < asteroid_count; j++){
+            if(pixel_collision(plasma_x[i], plasma_y[i], 1, 1, "o", asteroids_x[j], asteroids_y[j], 7, 7, asteroid)){
+                remove_asteroid(j);
+                remove_plasma(i);
+                i--;
+                j--;
+            }
+        }
+    }
+}
+
 void process(void) {
 	clear_screen();
 
@@ -221,6 +266,7 @@ void process(void) {
     process_plasma();
     process_asteroids();
 
+    process_collisions();
 
 	draw_everything();
 
@@ -231,6 +277,7 @@ void start_or_reset_game(){
     ship_xc = LCD_X/2 - ((int)15/2);
     ship_yc = 41;
     paused = false;
+    plasma_count = 0;
     spawn_asteroids();
 }
 
@@ -244,7 +291,7 @@ void manage_loop(){
     //if left button pressed start or reset game
     if(BIT_IS_SET(PINF, 6)){
         start_or_reset_game();
-        SET_BIT(PORTB, 2);
+        //SET_BIT(PORTB, 2);
     }
 
     if(BIT_IS_SET(PINF, 5)){
