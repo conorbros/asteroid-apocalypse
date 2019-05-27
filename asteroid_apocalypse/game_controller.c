@@ -12,12 +12,14 @@
 #include "cab202_adc.h"
 #include <math.h>
 
-
+int plasma_max = 100;
 int plasma_count = 0;
-int plasma_y[20];
-int plasma_x[20];
-int plasma_angle[20];
+int plasma_y[100];
+int plasma_x[100];
+int plasma_angle[100];
 
+int turret_base_x;
+int turret_base_y;
 int turret_barrel_x;
 int turret_barrel_y;
 
@@ -54,27 +56,14 @@ void draw_pixels(int left, int top, int width, int height, char bitmap[], bool s
     }
 };
 
-void draw_turret(){
-    int x1 = ship_xc + ((int)15/2);
-    int y1 = 45;
-
-    int y2 = y1 + -4 * cos(M_PI * shooter_angle / 180);
-    int x2 = x1 + -4 * sin(M_PI * shooter_angle / 180);
-
-    turret_barrel_x = x2;
-    turret_barrel_y = y2;
-
-    draw_line(x1, y1, x2, y2, FG_COLOUR);
-}
-
 void draw_ship() {
 	draw_pixels(ship_xc, ship_yc, ship_width, ship_height, spaceship, true);
-    draw_turret();
+    draw_line(turret_base_x, turret_base_y, turret_barrel_x, turret_barrel_y, FG_COLOUR);
 }
 
 void draw_shield() {
 	for (int i = 0; i < LCD_X; i += 10) {
-		draw_line(i, 39, i + 3, 39, FG_COLOUR);
+		draw_line(i, 39, i+3, 39, FG_COLOUR);
 	}
 }
 
@@ -102,28 +91,23 @@ void enable_inputs() {
 	CLEAR_BIT(DDRF, 5);
 	CLEAR_BIT(DDRF, 6);
 
+    //enable LED
+    SET_BIT(DDRB, 2);
+
+
     // Enable input from the left thumb wheel
     adc_init();
 }
 
-void setup( void ) {
-    set_clock_speed(CPU_8MHz);
-
-	enable_inputs();
-    //	Initialise the LCD display using the default contrast setting.
-    lcd_init(LCD_DEFAULT_CONTRAST);
-
-	draw_everything();
-}
-
 bool is_plasma_offscreen(int x, int y){
-    return x < 0 || y < 0;
+    return x <= 0 || y <= 0;
 }
 
 void remove_plasma(int index){
-    for(int i = index; i < plasma_count - 1; i++) {
-        plasma_x[i] = plasma_x[i + 1];
-        plasma_y[i] = plasma_y[i + 1];
+    for(int i = index; i < plasma_count-1; i++) {
+        plasma_x[i] = plasma_x[i+1];
+        plasma_y[i] = plasma_y[i+1];
+        plasma_angle[i] = plasma_angle[i+1];
     }
     plasma_count--;
 }
@@ -133,8 +117,10 @@ void process_plasma(){
         int x1 = plasma_x[i];
         int y1 = plasma_y[i];
 
-        int y2 = y1 + -1 * cos(M_PI * plasma_angle[i] / 180);
-        int x2 = x1 + -1 * sin(M_PI * plasma_angle[i] / 180);
+        int angle = plasma_angle[i];
+
+        int x2 = x1 + -2 * sin(M_PI * (angle*-1) / 180);
+        int y2 = y1 + -2 * cos(M_PI * (angle*-1) / 180);
 
         if(is_plasma_offscreen(x2, y2)){
             remove_plasma(i);
@@ -145,23 +131,40 @@ void process_plasma(){
     }
 }
 
-void fire_cannon(){
+void fire_cannon(int angle){
+    if(plasma_count == plasma_max) return;
+
     plasma_x[plasma_count] = turret_barrel_x;
     plasma_y[plasma_count] = turret_barrel_y;
-    plasma_angle[plasma_count] = shooter_angle;
+    plasma_angle[plasma_count] = angle;
     plasma_count++;
 }
 
-void process(void) {
-	clear_screen();
+void process_ship(){
+    long left_adc = adc_read(0);
+
+	// (V × R2 ÷ R1) + (M2 - M1)
+	shooter_angle = (left_adc * 120/1023) - 60;
+
+	char adc_status[15];
+    sprintf(adc_status, "A: %d", shooter_angle);
+	draw_string(10, 10, adc_status, FG_COLOUR);
+
+    turret_base_x = ship_xc + ((int)15/2);
+    turret_base_y = 45;
+    turret_barrel_x = turret_base_x + -4 * sin(M_PI * (shooter_angle *- 1) / 180);
+    turret_barrel_y = turret_base_y + -4 * cos(M_PI * (shooter_angle *- 1) / 180);
+
 
     // detect joystick up
-    if (BIT_IS_SET(PIND, 1) && ship_yc > 0) {
+    if (BIT_IS_SET(PIND, 1)) {
         //fire cannon
-        fire_cannon();
+        fire_cannon(shooter_angle);
+
     //joystick down
-    } else if (BIT_IS_SET(PINB, 7) && ship_yc + ship_height < LCD_Y) {
+    } else if (BIT_IS_SET(PINB, 7)) {
 		//send and display game status
+
 
     //joystick left
     } else if (BIT_IS_SET(PINB, 1) && ship_xc > 0) {
@@ -171,25 +174,22 @@ void process(void) {
     } else if (BIT_IS_SET(PIND, 0) && ship_xc + ship_width < LCD_X) {
         ship_xc += 1;
     }
+}
 
-    long left_adc = adc_read(0);
+void process(void) {
+	clear_screen();
 
-	// (V × R2 ÷ R1) + (M2 - M1)
-	shooter_angle = (left_adc * 120 / 1023) - 60;
-
-	char adc_status[15];
-    sprintf(adc_status, "A: %d", shooter_angle);
-	draw_string(10, 10, adc_status, FG_COLOUR);
-
+    process_ship();
     process_plasma();
+
 	draw_everything();
+
     show_screen();
 }
 
 void start_or_reset_game(){
-    ship_xc = LCD_X / 2 - ((int)15/2);
+    ship_xc = LCD_X/2 - ((int)15/2);
     ship_yc = 41;
-
     paused = false;
 }
 
@@ -203,6 +203,7 @@ void manage_loop(){
     //if left button pressed start or reset game
     if(BIT_IS_SET(PINF, 6)){
         start_or_reset_game();
+        SET_BIT(PORTB, 2);
     }
 
     if(BIT_IS_SET(PINF, 5)){
@@ -212,14 +213,22 @@ void manage_loop(){
 	if (paused) {
 		return;
 	}
-
     process();
 }
 
+void setup( void ) {
+    set_clock_speed(CPU_8MHz);
+
+	enable_inputs();
+    //	Initialise the LCD display using the default contrast setting.
+    lcd_init(LCD_DEFAULT_CONTRAST);
+
+	draw_everything();
+}
 
 int main(void) {
     setup();
-
+    start_or_reset_game();
     while (1) {
         manage_loop();
         _delay_ms(100);
