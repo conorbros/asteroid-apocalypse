@@ -12,6 +12,10 @@
 #include "cab202_adc.h"
 #include <math.h>
 
+int asteroid_count;
+int asteroids_x[3];
+int asteroids_y[3];
+
 int plasma_max = 100;
 int plasma_count = 0;
 int plasma_y[100];
@@ -44,6 +48,15 @@ char * spaceship =
 "oo   ooooo   oo"
 ;
 
+char * asteroid =
+"   o   "
+"  ooo  "
+" ooooo "
+"ooooooo"
+" ooooo "
+"  ooo  "
+"   o   ";
+
 void draw_pixels(int left, int top, int width, int height, char bitmap[], bool space_is_transparent) {
     for (int j = 0; j < height; j++) {
         for (int i = 0; i < width; i++) {
@@ -55,6 +68,30 @@ void draw_pixels(int left, int top, int width, int height, char bitmap[], bool s
         }
     }
 };
+
+int random_int(int min, int max){
+    return (rand() % (max + 1 - min)) + min;
+}
+
+void spawn_asteroids(){
+    asteroid_count = 3;
+    for(int i = 0; i <= 3; i++){
+        asteroids_x[i] = random_int(0, LCD_X-7);
+        asteroids_y[i] = -7;
+    }
+}
+
+void draw_asteriods(){
+    for(int i = 0; i < asteroid_count; i++){
+        draw_pixels(asteroids_x[i], asteroids_y[i], 7, 7, asteroid, true);
+    }
+}
+
+void process_asteroids(){
+    for(int i = 0; i < asteroid_count; i++){
+        asteroids_y[i] = asteroids_y[i]+1;
+    }
+}
 
 void draw_ship() {
 	draw_pixels(ship_xc, ship_yc, ship_width, ship_height, spaceship, true);
@@ -77,6 +114,7 @@ void draw_everything() {
 	draw_ship();
 	draw_shield();
     draw_plasma();
+    draw_asteriods();
 }
 
 void enable_inputs() {
@@ -181,6 +219,8 @@ void process(void) {
 
     process_ship();
     process_plasma();
+    process_asteroids();
+
 
 	draw_everything();
 
@@ -191,6 +231,7 @@ void start_or_reset_game(){
     ship_xc = LCD_X/2 - ((int)15/2);
     ship_yc = 41;
     paused = false;
+    spawn_asteroids();
 }
 
 void manage_loop(){
@@ -227,6 +268,7 @@ void setup( void ) {
 }
 
 int main(void) {
+    srand(0);
     setup();
     start_or_reset_game();
     while (1) {
