@@ -12,6 +12,14 @@
 #include "cab202_adc.h"
 #include <math.h>
 
+int fragment_count = 0;
+int fragments_x[12];
+int fragments_y[12];
+
+int boulder_count = 0;
+int boulders_x[6];
+int boulders_y[6];
+
 int asteroid_count;
 int asteroids_x[3];
 int asteroids_y[3];
@@ -26,17 +34,16 @@ int turret_base_x;
 int turret_base_y;
 int turret_barrel_x;
 int turret_barrel_y;
-
 int ship_width = 15;
 int ship_height = 7;
-
 int ship_xc = LCD_X / 2 - ((int)15/2);
 int ship_yc = 41;
-
 int shooter_angle = 0;
 
 bool paused = false;
 bool quit = false;
+int player_points;
+int player_lives;
 
 char * spaceship =
 "               "
@@ -57,6 +64,19 @@ char * asteroid =
 "  ooo  "
 "   o   ";
 
+char * boulder =
+"  o  "
+" ooo "
+"ooooo"
+" ooo "
+"  o  ";
+
+char * fragment =
+" o "
+"ooo"
+" o ";
+
+
 void draw_pixels(int left, int top, int width, int height, char bitmap[], bool space_is_transparent) {
     for (int j = 0; j < height; j++) {
         for (int i = 0; i < width; i++) {
@@ -73,13 +93,11 @@ int random_int(int min, int max){
     return (rand() % (max + 1 - min)) + min;
 }
 
-
 bool is_opaque(int x, int y, int x0, int y0, int w0, int h0, char pixels[]){
     return x >= x0 && x < x0 + w0
         && y >= y0 && y < y0 + h0
         && pixels[(x-x0) + (y-y0)*w0] != ' ';
 }
-
 
 bool pixel_collision(int x0, int y0, int w0, int h0, char pixels0[], int x1, int y1, int w1, int h1, char pixels1[]){
     for ( int j = 0; j < h0; j++ ){
@@ -94,6 +112,77 @@ bool pixel_collision(int x0, int y0, int w0, int h0, char pixels0[], int x1, int
     }
 
     return false;
+}
+
+void remove_boulder(int index){
+    for(int i = index; i < boulder_count-1; i++) {
+        boulders_x[i] = boulders_x[i+1];
+        boulders_y[i] = boulders_y[i+1];
+    }
+    boulder_count--;
+    player_points=+2;
+}
+
+void remove_asteroid(int index){
+    for(int i = index; i < asteroid_count-1; i++){
+        asteroids_x[i] = asteroids_x[i+1];
+        asteroids_y[i] = asteroids_y[i+1];
+    }
+    asteroid_count--;
+    player_points=+1;
+}
+
+void spawn_fragment(int x, int y){
+    fragments_x[fragment_count] = x;
+    fragments_y[fragment_count] = y;
+    fragment_count++;
+}
+
+void draw_fragments(){
+    for(int i = 0; i < fragment_count; i++){
+        draw_pixels(fragments_x[i], fragments_y[i], 3, 3, fragment, true);
+    }
+}
+
+void remove_fragment(){
+    for(int i = 0; i < fragment_count-1; i++){
+        fragments_x[i] = fragments_x[i+1];
+        fragments_y[i] = fragments_y[i+1];
+    }
+    fragment_count--;
+    player_points+=4;
+}
+
+void process_fragments(){
+    for(int i = 0; i < fragment_count; i++){
+        fragments_y[i] = fragments_y[i]+1;
+        if(fragments_y[i]+3 == 40){
+            remove_fragment(i);
+            player_lives--;
+        }
+    }
+}
+
+void spawn_boulder(int x, int y){
+    boulders_x[boulder_count] = x;
+    boulders_y[boulder_count] = y;
+    boulder_count++;
+}
+
+void draw_boulders(){
+    for(int i = 0; i < boulder_count; i++){
+        draw_pixels(boulders_x[i], boulders_y[i], 5, 5, boulder, true);
+    }
+}
+
+void process_boulders(){
+    for(int i = 0; i < boulder_count; i++){
+        boulders_y[i] = boulders_y[i]+1;
+        if(boulders_y[i]+5 == 40){
+            remove_boulder(i);
+            player_lives--;
+        }
+    }
 }
 
 void spawn_asteroids(){
@@ -113,7 +202,15 @@ void draw_asteriods(){
 void process_asteroids(){
     for(int i = 0; i < asteroid_count; i++){
         asteroids_y[i] = asteroids_y[i]+1;
+
+        //if asteroid hits shield
+        if(asteroids_y[i]+7 == 40){
+            remove_asteroid(i);
+            player_lives--;
+        }
     }
+
+    if(asteroid_count == 0) spawn_asteroids();
 }
 
 void draw_ship() {
@@ -137,6 +234,8 @@ void draw_everything() {
 	draw_ship();
 	draw_shield();
     draw_plasma();
+    draw_fragments();
+    draw_boulders();
     draw_asteriods();
 }
 
@@ -171,14 +270,6 @@ void remove_plasma(int index){
         plasma_angle[i] = plasma_angle[i+1];
     }
     plasma_count--;
-}
-
-void remove_asteroid(int index){
-    for(int i = index; i < asteroid_count-1; i++){
-        asteroids_x[i] = asteroids_x[i+1];
-        asteroids_y[i] = asteroids_y[i+1];
-    }
-    asteroid_count--;
 }
 
 void process_plasma(){
@@ -216,7 +307,7 @@ void process_ship(){
 	shooter_angle = (left_adc * 120/1023) - 60;
 
 	char adc_status[15];
-    sprintf(adc_status, "A: %d", shooter_angle);
+    sprintf(adc_status, "P: %d", player_lives);
 	draw_string(10, 10, adc_status, FG_COLOUR);
 
     turret_base_x = ship_xc + ((int)15/2);
@@ -250,8 +341,41 @@ void process_collisions(){
     for(int i = 0; i < plasma_count; i++){
         for(int j = 0; j < asteroid_count; j++){
             if(pixel_collision(plasma_x[i], plasma_y[i], 1, 1, "o", asteroids_x[j], asteroids_y[j], 7, 7, asteroid)){
+
+                spawn_boulder(asteroids_x[j], asteroids_y[j]);
+                spawn_boulder(asteroids_x[j]+7, asteroids_y[j]);
+
                 remove_asteroid(j);
                 remove_plasma(i);
+                i--;
+                j--;
+            }
+        }
+    }
+
+    for(int i = 0; i < plasma_count; i++){
+        for(int j = 0; j < boulder_count; j++){
+            if(pixel_collision(plasma_x[i], plasma_y[i], 1, 1, "o", boulders_x[j], boulders_y[j], 7, 7, boulder)){
+
+                spawn_fragment(boulders_x[j], boulders_y[j]);
+                spawn_fragment(boulders_x[j]+5, boulders_y[j]);
+
+                remove_boulder(j);
+                remove_plasma(i);
+
+                i--;
+                j--;
+            }
+        }
+    }
+
+    for(int i = 0; i < plasma_count; i++){
+        for(int j = 0; j < fragment_count; j++){
+            if(pixel_collision(plasma_x[i], plasma_y[i], 1, 1, "o", fragments_x[j], fragments_y[j], 3, 3, fragment)){
+
+                remove_fragment(j);
+                remove_plasma(i);
+
                 i--;
                 j--;
             }
@@ -265,6 +389,9 @@ void process(void) {
     process_ship();
     process_plasma();
     process_asteroids();
+    process_boulders();
+    process_fragments();
+
 
     process_collisions();
 
@@ -278,6 +405,10 @@ void start_or_reset_game(){
     ship_yc = 41;
     paused = false;
     plasma_count = 0;
+    boulder_count = 0;
+    fragment_count = 0;
+    player_points = 0;
+    player_lives = 5;
     spawn_asteroids();
 }
 
@@ -291,7 +422,7 @@ void manage_loop(){
     //if left button pressed start or reset game
     if(BIT_IS_SET(PINF, 6)){
         start_or_reset_game();
-        //SET_BIT(PORTB, 2);
+        SET_BIT(PORTB, 2);
     }
 
     if(BIT_IS_SET(PINF, 5)){
