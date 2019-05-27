@@ -40,6 +40,9 @@ int ship_xc = LCD_X / 2 - ((int)15/2);
 int ship_yc = 41;
 int shooter_angle = 0;
 
+bool ship_moving = true;
+bool moving_left = true;
+
 bool paused = false;
 bool quit = false;
 int player_points;
@@ -327,11 +330,45 @@ void process_ship(){
 
 
     //joystick left
-    } else if (BIT_IS_SET(PINB, 1) && ship_xc > 0) {
-        ship_xc -= 1;
+    } else if (BIT_IS_SET(PINB, 1)) {
+
+        //if moving right and left pressed, stop the ship
+        if(!moving_left && ship_moving){
+            ship_moving = false;
+
+        //if not moving, move left
+        }else if(!ship_moving){
+            moving_left = true;
+            ship_moving = true;
+        }
 
     //joystick right
-    } else if (BIT_IS_SET(PIND, 0) && ship_xc + ship_width < LCD_X) {
+    } else if (BIT_IS_SET(PIND, 0)) {
+
+
+        //if moving left and right pressed, stop the ship
+        if(moving_left && ship_moving){
+            ship_moving = false;
+
+        //if not moving, move right
+        }else if(!ship_moving){
+            ship_moving = true;
+            moving_left = false;
+        }
+    }
+
+    //if ship is at the left edge, stop
+    if(ship_xc == 0 && moving_left){
+        ship_moving = false;
+
+    //if ship is at the right edge, stop
+    }else if(ship_xc+ship_width == LCD_X && !moving_left){
+        ship_moving = false;
+    }
+
+    if(ship_moving && moving_left && ship_xc > 0){
+        ship_xc -= 1;
+    }else if(ship_moving && !moving_left && ship_xc+ship_width < LCD_X){
         ship_xc += 1;
     }
 }
@@ -410,6 +447,12 @@ void start_or_reset_game(){
     player_points = 0;
     player_lives = 5;
     spawn_asteroids();
+    ship_moving = true;
+    if(random_int(0, 50) > 25){
+        moving_left = false;
+    }else{
+        moving_left = true;
+    }
 }
 
 void manage_loop(){
