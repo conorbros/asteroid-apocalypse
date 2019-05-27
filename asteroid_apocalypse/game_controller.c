@@ -136,6 +136,14 @@ void remove_asteroid(int index){
 }
 
 void spawn_fragment(int x, int y){
+
+    //ensure fragment spawns within the bounds of the screen
+    if(x+3 == LCD_X){
+        x = LCD_X - (x+3 - LCD_X);
+    }else if(x < 0) {
+        x = 0;
+    }
+
     fragments_x[fragment_count] = x;
     fragments_y[fragment_count] = y;
     fragment_count++;
@@ -167,6 +175,14 @@ void process_fragments(){
 }
 
 void spawn_boulder(int x, int y){
+
+    //ensure boulder spawns within the bounds of the screen
+    if(x+5 == LCD_X){
+        x = LCD_X - (x+3 - LCD_X);
+    }else if(x < 0) {
+        x = 0;
+    }
+
     boulders_x[boulder_count] = x;
     boulders_y[boulder_count] = y;
     boulder_count++;
@@ -429,7 +445,6 @@ void process(void) {
     process_boulders();
     process_fragments();
 
-
     process_collisions();
 
 	draw_everything();
@@ -448,6 +463,7 @@ void start_or_reset_game(){
     player_lives = 5;
     spawn_asteroids();
     ship_moving = true;
+
     if(random_int(0, 50) > 25){
         moving_left = false;
     }else{
@@ -492,6 +508,7 @@ int main(void) {
     srand(0);
     setup();
     start_or_reset_game();
+
     while (1) {
         manage_loop();
         _delay_ms(100);
