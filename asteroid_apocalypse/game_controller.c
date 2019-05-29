@@ -14,18 +14,19 @@
 #include <math.h>
 #include <stdint.h>
 
+double velocity;
 
 int fragment_count = 0;
-int fragments_x[12];
-int fragments_y[12];
+double fragments_x[12];
+double fragments_y[12];
 
 int boulder_count = 0;
-int boulders_x[6];
-int boulders_y[6];
+double boulders_x[6];
+double boulders_y[6];
 
 int asteroid_count;
-int asteroids_x[3];
-int asteroids_y[3];
+double asteroids_x[3];
+double asteroids_y[3];
 
 int plasma_max = 100;
 int plasma_count = 0;
@@ -191,7 +192,7 @@ void remove_fragment(int index){
 
 void process_fragments(){
     for(int i = 0; i < fragment_count; i++){
-        fragments_y[i] = fragments_y[i]+1;
+        fragments_y[i] = fragments_y[i]+velocity;
         if(fragments_y[i]+3 == 40){
             remove_fragment(i);
             player_lives--;
@@ -221,7 +222,7 @@ void draw_boulders(){
 
 void process_boulders(){
     for(int i = 0; i < boulder_count; i++){
-        boulders_y[i] = boulders_y[i]+1;
+        boulders_y[i] = boulders_y[i]+velocity;
         if(boulders_y[i]+5 == 40){
             remove_boulder(i);
             player_lives--;
@@ -245,7 +246,7 @@ void draw_asteriods(){
 
 void process_asteroids(){
     for(int i = 0; i < asteroid_count; i++){
-        asteroids_y[i] = asteroids_y[i]+1;
+        asteroids_y[i] = asteroids_y[i]+velocity;
 
         //if asteroid hits shield
         if(asteroids_y[i]+7 == 40){
@@ -254,7 +255,9 @@ void process_asteroids(){
         }
     }
 
-    if(asteroid_count == 0) spawn_asteroids();
+    if(asteroid_count == 0 && fragment_count == 0 && boulder_count == 0) {
+        spawn_asteroids();
+    }
 }
 
 void draw_ship() {
@@ -349,8 +352,6 @@ void process_ship(){
 
 	// (V × R2 ÷ R1) + (M2 - M1)
 	shooter_angle = (left_adc * 120/1023) - 60;
-
-	draw_timer();
 
     turret_base_x = ship_xc + ((int)15/2);
     turret_base_y = 45;
@@ -470,6 +471,8 @@ void process_input(){
         }
     }
 
+    long right_adc = adc_read(1);
+    velocity = right_adc/(double)1023;
 }
 
 void process(void) {
@@ -484,6 +487,10 @@ void process(void) {
     process_fragments();
 
     process_collisions();
+
+    char adc_status[15];
+    sprintf(adc_status, "A: %d", shooter_angle);
+	draw_string(10, 10, adc_status, FG_COLOUR);
 
 	draw_everything();
     show_screen();
@@ -549,15 +556,13 @@ void enable_inputs() {
     //enable LED
     SET_BIT(DDRB, 2);
 
-
     // Enable input from the left thumb wheel
     adc_init();
 }
 
 void setup_timer(void){
 
-    //Initialise Timer 3 in normal mode so that it overflows 
-	//	with a period of approximately 2.1 seconds.
+    //Initialise Timer 3 in normal mode so that it overflows with a period of approximately 2.1 seconds.
 	TCCR3A = 0;
 	TCCR3B = 4;
 
@@ -595,6 +600,5 @@ int main(void) {
 
         if(quit) break;
     }
-
     return 0;
 }
