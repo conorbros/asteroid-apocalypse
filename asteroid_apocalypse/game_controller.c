@@ -338,26 +338,6 @@ void fire_cannon(int angle){
 
 }
 
-void draw_timer(){
-    char time_output[20];
-    int minutes = get_minutes_running();
-    int seconds = get_seconds_running();
-
-    if (minutes < 10 && seconds < 10){
-        sprintf(time_output, "Time: 0%d:0%d", minutes, seconds);
-    }else if (minutes > 10 && seconds > 10){
-        sprintf(time_output, "Time: %d:%d", minutes, seconds);
-    } else if (minutes < 10){
-        sprintf(time_output, "Time: 0%d:%d", minutes, seconds);
-    } else if (seconds < 10){
-        sprintf(time_output, "Time: %d:0%d", minutes, seconds);
-    } else if (minutes == 0){
-        sprintf(time_output, "Time: 00:%d", seconds);
-    }
-
-    draw_string(10, 10, time_output, FG_COLOUR);
-}
-
 void process_ship(){
     long left_adc = adc_read(0);
 
@@ -443,17 +423,50 @@ void process_collisions(){
     
 }
 
+void game_status(){
+    if(!paused) return;
+    
+    char time_output[20];
+    int minutes = get_minutes_running();
+    int seconds = get_seconds_running();
+
+    if (minutes < 10 && seconds < 10){
+        sprintf(time_output, "Time: 0%d:0%d", minutes, seconds);
+    }else if (minutes > 10 && seconds > 10){
+        sprintf(time_output, "Time: %d:%d", minutes, seconds);
+    } else if (minutes < 10){
+        sprintf(time_output, "Time: 0%d:%d", minutes, seconds);
+    } else if (seconds < 10){
+        sprintf(time_output, "Time: %d:0%d", minutes, seconds);
+    } else if (minutes == 0){
+        sprintf(time_output, "Time: 00:%d", seconds);
+    }
+
+    char lives_output[20];
+    sprintf(lives_output, "Lives: %d", player_lives);
+
+    char score_output[20];
+    sprintf(score_output, "Points: %d", player_points);
+
+    while(!BIT_IS_SET(PIND, 1)){
+        clear_screen();
+        draw_string(0, 0, time_output, FG_COLOUR);
+        draw_string(0, 20, lives_output, FG_COLOUR);
+        draw_string(0, 30, score_output, FG_COLOUR);
+        _delay_ms(100);
+        show_screen();
+    }
+    clear_screen();
+    draw_everything();
+    show_screen();
+}
+
 void process_input(){
 
     // joystick up
     if (BIT_IS_SET(PIND, 1)) {
         //fire cannon
         fire_cannon(shooter_angle);
-
-    //joystick down
-    } else if (BIT_IS_SET(PINB, 7)) {
-		//send and display game status
-
 
     //joystick left
     } else if (BIT_IS_SET(PINB, 1)) {
@@ -534,6 +547,11 @@ void manage_loop(){
     //if center joystick pressed game is paused
     if (BIT_IS_SET(PINB, 0)) {
         paused = !paused;
+    }
+
+    if (BIT_IS_SET(PINB, 7)) {
+		//send and display game status
+        game_status();
     }
 
     //if left button pressed start or reset game
