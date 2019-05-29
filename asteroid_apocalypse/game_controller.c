@@ -155,8 +155,8 @@ void draw_fragments(){
     }
 }
 
-void remove_fragment(){
-    for(int i = 0; i < fragment_count-1; i++){
+void remove_fragment(int index){
+    for(int i = index; i < fragment_count-1; i++){
         fragments_x[i] = fragments_x[i+1];
         fragments_y[i] = fragments_y[i+1];
     }
@@ -256,26 +256,6 @@ void draw_everything() {
     draw_fragments();
     draw_boulders();
     draw_asteriods();
-}
-
-void enable_inputs() {
-	//	Enable input from the Center, Left, Right, Up, and Down switches of the joystick.
-	CLEAR_BIT(DDRB, 0);
-    CLEAR_BIT(DDRB, 1);
-    CLEAR_BIT(DDRD, 0);
-    CLEAR_BIT(DDRD, 1);
-    CLEAR_BIT(DDRB, 7);
-
-    // Input from the left and right buttons
-	CLEAR_BIT(DDRF, 5);
-	CLEAR_BIT(DDRF, 6);
-
-    //enable LED
-    SET_BIT(DDRB, 2);
-
-
-    // Enable input from the left thumb wheel
-    adc_init();
 }
 
 bool is_plasma_offscreen(int x, int y){
@@ -492,6 +472,30 @@ void manage_loop(){
 		return;
 	}
     process();
+}
+
+void enable_inputs() {
+	//	Enable input from the Center, Left, Right, Up, and Down switches of the joystick.
+	CLEAR_BIT(DDRB, 0);
+    CLEAR_BIT(DDRB, 1);
+    CLEAR_BIT(DDRD, 0);
+    CLEAR_BIT(DDRD, 1);
+    CLEAR_BIT(DDRB, 7);
+
+    // Input from the left and right buttons
+	CLEAR_BIT(DDRF, 5);
+	CLEAR_BIT(DDRF, 6);
+
+    //enable LED
+    SET_BIT(DDRB, 2);
+
+
+    // Enable input from the left thumb wheel
+    adc_init();
+}
+
+void setup_timer(){
+    
 }
 
 void setup( void ) {
