@@ -30,9 +30,9 @@ double asteroids_y[3];
 
 int plasma_max = 100;
 int plasma_count = 0;
-int plasma_y[100];
 int plasma_x[100];
-int plasma_angle[100];
+int plasma_y[100];
+double plasma_angle[100];
 
 int turret_base_x;
 int turret_base_y;
@@ -42,7 +42,8 @@ int ship_width = 15;
 int ship_height = 7;
 int ship_xc = LCD_X / 2 - ((int)15/2);
 int ship_yc = 41;
-int shooter_angle = 0;
+double shooter_angle = 0;
+double last_plasma_time;
 
 bool ship_moving = true;
 bool moving_left = true;
@@ -84,6 +85,10 @@ char * fragment =
 " o "
 "ooo"
 " o ";
+
+char * plasma =
+"oo"
+"oo";
 
 
 void draw_pixels(int left, int top, int width, int height, char bitmap[], bool space_is_transparent) {
@@ -193,7 +198,7 @@ void remove_fragment(int index){
 void process_fragments(){
     for(int i = 0; i < fragment_count; i++){
         fragments_y[i] = fragments_y[i]+velocity;
-        if(fragments_y[i]+3 == 40){
+        if(fragments_y[i]+3.0 >= 40.0){
             remove_fragment(i);
             player_lives--;
         }
@@ -223,7 +228,7 @@ void draw_boulders(){
 void process_boulders(){
     for(int i = 0; i < boulder_count; i++){
         boulders_y[i] = boulders_y[i]+velocity;
-        if(boulders_y[i]+5 == 40){
+        if(boulders_y[i]+5.0 >= 40.0){
             remove_boulder(i);
             player_lives--;
         }
@@ -249,7 +254,7 @@ void process_asteroids(){
         asteroids_y[i] = asteroids_y[i]+velocity;
 
         //if asteroid hits shield
-        if(asteroids_y[i]+7 == 40){
+        if(asteroids_y[i]+7.0 >= 40.0){
             remove_asteroid(i);
             player_lives--;
         }
@@ -273,7 +278,7 @@ void draw_shield() {
 
 void draw_plasma(){
     for(int i = 0; i < plasma_count; i++){
-        draw_pixel(plasma_x[i], plasma_y[i], FG_COLOUR);
+        draw_pixels(plasma_x[i], plasma_y[i], 2, 2, plasma, true);
     }
 }
 
@@ -309,7 +314,7 @@ void process_plasma(){
         int x2 = x1 + -2 * sin(M_PI * (angle*-1) / 180);
         int y2 = y1 + -2 * cos(M_PI * (angle*-1) / 180);
 
-        if(is_plasma_offscreen(x2, y2)){
+        if(is_plasma_offscreen(x1, y1)){
             remove_plasma(i);
         }else{
             plasma_x[i] = x2;
@@ -321,10 +326,16 @@ void process_plasma(){
 void fire_cannon(int angle){
     if(plasma_count == plasma_max) return;
 
-    plasma_x[plasma_count] = turret_barrel_x;
-    plasma_y[plasma_count] = turret_barrel_y;
-    plasma_angle[plasma_count] = angle;
-    plasma_count++;
+    double diff = get_elapsed_time() - last_plasma_time;
+
+    if(diff > 0.2){
+        plasma_x[plasma_count] = turret_barrel_x;
+        plasma_y[plasma_count] = turret_barrel_y;
+        plasma_angle[plasma_count] = angle;
+        plasma_count++;
+        last_plasma_time = get_elapsed_time();
+    }
+
 }
 
 void draw_timer(){
@@ -351,7 +362,7 @@ void process_ship(){
     long left_adc = adc_read(0);
 
 	// (V × R2 ÷ R1) + (M2 - M1)
-	shooter_angle = (left_adc * 120/1023) - 60;
+	shooter_angle = ((double)left_adc * 120.0/1023.0) - 60.0;
 
     turret_base_x = ship_xc + ((int)15/2);
     turret_base_y = 45;
@@ -377,7 +388,7 @@ void process_ship(){
 void process_asteroid_collisions(){
     for(int i = 0; i < plasma_count; i++){
         for(int j = 0; j < asteroid_count; j++){
-            if(pixel_collision(plasma_x[i], plasma_y[i], 1, 1, "o", asteroids_x[j], asteroids_y[j], 7, 7, asteroid)){
+            if(pixel_collision(plasma_x[i], plasma_y[i], 2, 2, plasma, asteroids_x[j], asteroids_y[j], 7, 7, asteroid)){
 
                 spawn_boulder(asteroids_x[j], asteroids_y[j]);
                 spawn_boulder(asteroids_x[j]+7, asteroids_y[j]);
@@ -394,7 +405,7 @@ void process_asteroid_collisions(){
 void process_boulder_collisions(){
     for(int i = 0; i < plasma_count; i++){
         for(int j = 0; j < boulder_count; j++){
-            if(pixel_collision(plasma_x[i], plasma_y[i], 1, 1, "o", boulders_x[j], boulders_y[j], 7, 7, boulder)){
+            if(pixel_collision(plasma_x[i], plasma_y[i], 2, 2, plasma, boulders_x[j], boulders_y[j], 7, 7, boulder)){
 
                 spawn_fragment(boulders_x[j], boulders_y[j]);
                 spawn_fragment(boulders_x[j]+5, boulders_y[j]);
@@ -412,7 +423,7 @@ void process_boulder_collisions(){
 void process_fragment_collisions(){
     for(int i = 0; i < plasma_count; i++){
         for(int j = 0; j < fragment_count; j++){
-            if(pixel_collision(plasma_x[i], plasma_y[i], 1, 1, "o", fragments_x[j], fragments_y[j], 3, 3, fragment)){
+            if(pixel_collision(plasma_x[i], plasma_y[i], 2, 2, plasma, fragments_x[j], fragments_y[j], 3, 3, fragment)){
 
                 remove_fragment(j);
                 remove_plasma(i);
@@ -488,9 +499,9 @@ void process(void) {
 
     process_collisions();
 
-    char adc_status[15];
-    sprintf(adc_status, "A: %d", shooter_angle);
-	draw_string(10, 10, adc_status, FG_COLOUR);
+    //char adc_status[15];
+    //sprintf(adc_status, "A: %f", shooter_angle);
+	//draw_string(10, 10, adc_status, FG_COLOUR);
 
 	draw_everything();
     show_screen();
@@ -507,6 +518,7 @@ void start_or_reset_game(){
     player_lives = 5;
     spawn_asteroids();
     ship_moving = true;
+    last_plasma_time = 1.0;
 
     start_timer();
 
@@ -519,7 +531,7 @@ void start_or_reset_game(){
 
 void manage_loop(){
 
-    //if center button pressed game is paused
+    //if center joystick pressed game is paused
     if (BIT_IS_SET(PINB, 0)) {
         paused = !paused;
     }
@@ -527,7 +539,7 @@ void manage_loop(){
     //if left button pressed start or reset game
     if(BIT_IS_SET(PINF, 6)){
         start_or_reset_game();
-        SET_BIT(PORTB, 2);
+        //SET_BIT(PORTB, 2);
     }
 
     //if right button pressed quit the game
@@ -579,6 +591,53 @@ ISR(TIMER3_OVF_vect){
     }
 }
 
+void intro_message(){
+    char * smiley =
+    "ooooooooooooooooooooo"
+	"o                   o"
+	"o   ooooo	  ooooo  o"
+    "o     o        o    o" 
+    "o   ooooo    ooooo  o"
+    "o                   o"
+    "o        o          o"
+    "o         o         o"
+    "o          o        o"
+    "o        oooo       o"
+    "o                   o"
+    "o   oooooooooooooo  o"
+    "o    o          o   o"
+    "o     o        o    o"
+    "o      ooooooo      o"
+	"o                   o"
+	"ooooooooooooooooooooo";
+
+    
+    int count = 0;
+    int smiley_x[5] = {-21, 0, 22, 43, 65};
+    while(count < 1000){
+        clear_screen();
+
+        //if left button pressed skip intro
+        if(BIT_IS_SET(PINF, 6)){
+            return;
+        }
+
+        draw_string(0, 0, "n10009671", FG_COLOUR);
+        draw_string(0, 10, "ASS APOCALYSE!", FG_COLOUR);
+
+        for(int i = 0; i < 5; i++){
+            draw_pixels(smiley_x[i], 20,21, 17, smiley, true);
+            smiley_x[i]++;
+            if(smiley_x[i] > LCD_X){
+                smiley_x[i] = -22;
+            }
+        }        
+        show_screen();
+        count++;
+        _delay_ms(100);
+    }
+}
+
 void setup( void ) {
     set_clock_speed(CPU_8MHz);
 
@@ -592,6 +651,7 @@ void setup( void ) {
 int main(void) {
     srand(0);
     setup();
+    intro_message();
     start_or_reset_game();
 
     while (1) {
