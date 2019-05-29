@@ -357,8 +357,83 @@ void process_ship(){
     turret_barrel_x = turret_base_x + -4 * sin(M_PI * (shooter_angle *- 1) / 180);
     turret_barrel_y = turret_base_y + -4 * cos(M_PI * (shooter_angle *- 1) / 180);
 
+    //if ship is at the left edge, stop
+    if(ship_xc == 0 && moving_left){
+        ship_moving = false;
 
-    // detect joystick up
+    //if ship is at the right edge, stop
+    }else if(ship_xc+ship_width == LCD_X && !moving_left){
+        ship_moving = false;
+    }
+
+    if(ship_moving && moving_left && ship_xc > 0){
+        ship_xc -= 1;
+    }else if(ship_moving && !moving_left && ship_xc+ship_width < LCD_X){
+        ship_xc += 1;
+    }
+}
+
+void process_asteroid_collisions(){
+    for(int i = 0; i < plasma_count; i++){
+        for(int j = 0; j < asteroid_count; j++){
+            if(pixel_collision(plasma_x[i], plasma_y[i], 1, 1, "o", asteroids_x[j], asteroids_y[j], 7, 7, asteroid)){
+
+                spawn_boulder(asteroids_x[j], asteroids_y[j]);
+                spawn_boulder(asteroids_x[j]+7, asteroids_y[j]);
+
+                remove_asteroid(j);
+                remove_plasma(i);
+                i--;
+                j--;
+            }
+        }
+    }
+}
+
+void process_boulder_collisions(){
+    for(int i = 0; i < plasma_count; i++){
+        for(int j = 0; j < boulder_count; j++){
+            if(pixel_collision(plasma_x[i], plasma_y[i], 1, 1, "o", boulders_x[j], boulders_y[j], 7, 7, boulder)){
+
+                spawn_fragment(boulders_x[j], boulders_y[j]);
+                spawn_fragment(boulders_x[j]+5, boulders_y[j]);
+
+                remove_boulder(j);
+                remove_plasma(i);
+
+                i--;
+                j--;
+            }
+        }
+    }
+}
+
+void process_fragment_collisions(){
+    for(int i = 0; i < plasma_count; i++){
+        for(int j = 0; j < fragment_count; j++){
+            if(pixel_collision(plasma_x[i], plasma_y[i], 1, 1, "o", fragments_x[j], fragments_y[j], 3, 3, fragment)){
+
+                remove_fragment(j);
+                remove_plasma(i);
+
+                i--;
+                j--;
+            }
+        }
+    }
+}
+
+void process_collisions(){
+
+    process_asteroid_collisions();    
+    process_boulder_collisions();
+    process_fragment_collisions();
+    
+}
+
+void process_input(){
+
+    // joystick up
     if (BIT_IS_SET(PIND, 1)) {
         //fire cannon
         fire_cannon(shooter_angle);
@@ -395,71 +470,12 @@ void process_ship(){
         }
     }
 
-    //if ship is at the left edge, stop
-    if(ship_xc == 0 && moving_left){
-        ship_moving = false;
-
-    //if ship is at the right edge, stop
-    }else if(ship_xc+ship_width == LCD_X && !moving_left){
-        ship_moving = false;
-    }
-
-    if(ship_moving && moving_left && ship_xc > 0){
-        ship_xc -= 1;
-    }else if(ship_moving && !moving_left && ship_xc+ship_width < LCD_X){
-        ship_xc += 1;
-    }
-}
-
-void process_collisions(){
-
-    for(int i = 0; i < plasma_count; i++){
-        for(int j = 0; j < asteroid_count; j++){
-            if(pixel_collision(plasma_x[i], plasma_y[i], 1, 1, "o", asteroids_x[j], asteroids_y[j], 7, 7, asteroid)){
-
-                spawn_boulder(asteroids_x[j], asteroids_y[j]);
-                spawn_boulder(asteroids_x[j]+7, asteroids_y[j]);
-
-                remove_asteroid(j);
-                remove_plasma(i);
-                i--;
-                j--;
-            }
-        }
-    }
-
-    for(int i = 0; i < plasma_count; i++){
-        for(int j = 0; j < boulder_count; j++){
-            if(pixel_collision(plasma_x[i], plasma_y[i], 1, 1, "o", boulders_x[j], boulders_y[j], 7, 7, boulder)){
-
-                spawn_fragment(boulders_x[j], boulders_y[j]);
-                spawn_fragment(boulders_x[j]+5, boulders_y[j]);
-
-                remove_boulder(j);
-                remove_plasma(i);
-
-                i--;
-                j--;
-            }
-        }
-    }
-
-    for(int i = 0; i < plasma_count; i++){
-        for(int j = 0; j < fragment_count; j++){
-            if(pixel_collision(plasma_x[i], plasma_y[i], 1, 1, "o", fragments_x[j], fragments_y[j], 3, 3, fragment)){
-
-                remove_fragment(j);
-                remove_plasma(i);
-
-                i--;
-                j--;
-            }
-        }
-    }
 }
 
 void process(void) {
 	clear_screen();
+
+    process_input();
 
     process_ship();
     process_plasma();
@@ -507,6 +523,7 @@ void manage_loop(){
         SET_BIT(PORTB, 2);
     }
 
+    //if right button pressed quit the game
     if(BIT_IS_SET(PINF, 5)){
         quit = true;
     }
