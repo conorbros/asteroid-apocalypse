@@ -1,4 +1,5 @@
 #include <avr/io.h>
+#include <avr/interrupt.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -11,6 +12,8 @@
 #include "lcd_model.h"
 #include "cab202_adc.h"
 #include <math.h>
+#include <stdint.h>
+
 
 int fragment_count = 0;
 int fragments_x[12];
@@ -47,6 +50,8 @@ bool paused = false;
 bool quit = false;
 int player_points;
 int player_lives;
+
+volatile uint32_t cycle_count;
 
 char * spaceship =
 "               "
@@ -115,6 +120,26 @@ bool pixel_collision(int x0, int y0, int w0, int h0, char pixels0[], int x1, int
     }
 
     return false;
+}
+
+double get_elapsed_time(){
+    return (cycle_count * 65536.0 + TCNT3 ) * 256.0 / 8000000.0; 
+}
+
+int get_seconds_running(){
+    double diff = get_elapsed_time();
+    int seconds = (int) diff % 60;
+    return seconds;
+}
+
+int get_minutes_running(){
+    double diff = get_elapsed_time();
+    int minutes = (int) diff / 60;
+    return minutes;
+}
+
+void start_timer(){
+    cycle_count = 0;
 }
 
 void remove_boulder(int index){
@@ -299,15 +324,33 @@ void fire_cannon(int angle){
     plasma_count++;
 }
 
+void draw_timer(){
+    char time_output[20];
+    int minutes = get_minutes_running();
+    int seconds = get_seconds_running();
+
+    if (minutes < 10 && seconds < 10){
+        sprintf(time_output, "Time: 0%d:0%d", minutes, seconds);
+    }else if (minutes > 10 && seconds > 10){
+        sprintf(time_output, "Time: %d:%d", minutes, seconds);
+    } else if (minutes < 10){
+        sprintf(time_output, "Time: 0%d:%d", minutes, seconds);
+    } else if (seconds < 10){
+        sprintf(time_output, "Time: %d:0%d", minutes, seconds);
+    } else if (minutes == 0){
+        sprintf(time_output, "Time: 00:%d", seconds);
+    }
+
+    draw_string(10, 10, time_output, FG_COLOUR);
+}
+
 void process_ship(){
     long left_adc = adc_read(0);
 
 	// (V × R2 ÷ R1) + (M2 - M1)
 	shooter_angle = (left_adc * 120/1023) - 60;
 
-	char adc_status[15];
-    sprintf(adc_status, "P: %d", player_lives);
-	draw_string(10, 10, adc_status, FG_COLOUR);
+	draw_timer();
 
     turret_base_x = ship_xc + ((int)15/2);
     turret_base_y = 45;
@@ -340,7 +383,6 @@ void process_ship(){
 
     //joystick right
     } else if (BIT_IS_SET(PIND, 0)) {
-
 
         //if moving left and right pressed, stop the ship
         if(moving_left && ship_moving){
@@ -428,7 +470,6 @@ void process(void) {
     process_collisions();
 
 	draw_everything();
-
     show_screen();
 }
 
@@ -443,6 +484,8 @@ void start_or_reset_game(){
     player_lives = 5;
     spawn_asteroids();
     ship_moving = true;
+
+    start_timer();
 
     if(random_int(0, 50) > 25){
         moving_left = false;
@@ -494,8 +537,24 @@ void enable_inputs() {
     adc_init();
 }
 
-void setup_timer(){
-    
+void setup_timer(void){
+
+    //Initialise Timer 3 in normal mode so that it overflows 
+	//	with a period of approximately 2.1 seconds.
+	TCCR3A = 0;
+	TCCR3B = 4;
+
+    //Enable timer overflow for Timer 3
+	TIMSK3 = 1;
+
+    //turn on interupts
+	sei();
+}
+
+ISR(TIMER3_OVF_vect){
+    if(!paused){
+        cycle_count++;
+    }
 }
 
 void setup( void ) {
@@ -504,7 +563,7 @@ void setup( void ) {
 	enable_inputs();
     //	Initialise the LCD display using the default contrast setting.
     lcd_init(LCD_DEFAULT_CONTRAST);
-
+    setup_timer();
 	draw_everything();
 }
 
