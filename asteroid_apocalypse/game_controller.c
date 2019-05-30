@@ -48,6 +48,11 @@ double last_plasma_time;
 bool ship_moving = true;
 bool moving_left = true;
 
+bool flash_left_led = false;
+double left_led_timer;
+bool flash_right_led = false;
+double right_led_timer;
+
 bool paused = false;
 bool quit = false;
 int player_points;
@@ -235,12 +240,90 @@ void process_boulders(){
     }
 }
 
+void left_LED_flash(double start_time){
+    double left_led_timer = get_elapsed_time();
+    int count = 0;
+
+    
+        double diff = get_elapsed_time() - left_led_timer;
+
+        if(diff >= 2.0){
+            break;
+        }
+
+        if(count % 2 == 0){
+            SET_BIT(PORTB, 2);
+        }else{
+            CLEAR_BIT(PORTB, 2);
+        }
+        count++;
+        _delay_ms(500);
+    }
+}
+
+void right_LED_flash(){
+    double start_time = get_elapsed_time();
+    int count = 0;
+
+    while(1){
+        double diff = get_elapsed_time() - start_time;
+
+        if(diff >= 2.0){
+            break;
+        }
+
+        if(count % 2 == 0){
+            SET_BIT(PORTB, 3);
+        }else{
+            CLEAR_BIT(PORTB, 3);
+        }
+        count++;
+        _delay_ms(500);
+    }
+}
+
 void spawn_asteroids(){
     asteroid_count = 3;
+    double x = 0;
     for(int i = 0; i < asteroid_count; i++){
-        asteroids_x[i] = random_int(0, LCD_X-7);
-        asteroids_y[i] = -7;
+
+        bool overlap = true;
+        while(overlap && i > 0){
+            x = (double)random_int(0, LCD_X-7);
+            double x_right = x+7.0;
+
+            for(int l = 0; l < i; l++){
+                double x1 = asteroids_x[l];
+                double x2 = asteroids_x[l]+7.0;
+
+                if((x >= x1 && x <= x2) || (x_right >= x1 && x_right <= x2)){
+                    overlap = true;
+                }
+            }
+            overlap = false;
+        }
+
+        asteroids_x[i] = x;
+        asteroids_y[i] = -8;
     }
+
+    int left_asteroids = 0;
+    int right_asteroids = 0;
+
+    for(int i = 0; i < asteroid_count; i++){
+        if(asteroids_x[i]+3 <= LCD_X/2){
+            left_asteroids++;
+        }else{
+            right_asteroids++;
+        }
+    }
+
+    if(left_asteroids > right_asteroids){
+        flash_left_LED = true;
+    }else{
+        flash_right_LED = true;
+    }
+
 }
 
 void draw_asteriods(){
@@ -542,11 +625,24 @@ void start_or_reset_game(){
 }
 
 void game_over(){
-    
+    double led_start_time = get_elapsed_time();
     int count = 0;
+
+    //turn on left LED
+    SET_BIT(PORTB, 2);
+    //turn on right LED
+    SET_BIT(PORTB, 3);
+
     while(1){
 
         clear_screen();
+        double diff = get_elapsed_time() - led_start_time;
+
+        //turn off leds after 2 seconds
+        if(diff >= 2.0){
+            CLEAR_BIT(PORTB, 2);
+            CLEAR_BIT(PORTB, 3);
+        }
 
         //if left button pressed start or reset the game
         if(BIT_IS_SET(PINF, 6)){
@@ -594,9 +690,17 @@ void manage_loop(){
         quit = true;
     }
 
-	if (paused) {
+	if(paused){
 		return;
 	}
+
+    if(flash_left_led){
+        left_LED_flash();
+    }
+
+    if(flash_right_led){
+        right_LED_flash();
+    }
 
     if(player_lives <= 0){
         game_over();
@@ -695,9 +799,15 @@ void setup( void ) {
 
 	enable_inputs();
     //	Initialise the LCD display using the default contrast setting.
-    lcd_init(LCD_DEFAULT_CONTRAST);
+    lcd_init(LCD_HIGH_CONTRAST);
     setup_timer();
 	draw_everything();
+}
+
+void quit_game(){
+    clear_screen();
+    draw_string(20, 10, "n10009671", FG_COLOUR);
+    show_screen();
 }
 
 int main(void) {
@@ -712,5 +822,8 @@ int main(void) {
 
         if(quit) break;
     }
+
+    quit_game();
+
     return 0;
 }
