@@ -335,7 +335,6 @@ void fire_cannon(int angle){
         plasma_count++;
         last_plasma_time = get_elapsed_time();
     }
-
 }
 
 void process_ship(){
@@ -542,6 +541,36 @@ void start_or_reset_game(){
     }
 }
 
+void game_over(){
+    
+    int count = 0;
+    while(1){
+
+        clear_screen();
+
+        //if left button pressed start or reset the game
+        if(BIT_IS_SET(PINF, 6)){
+            start_or_reset_game();
+            return;
+        
+        //if right button pressed quit the game
+        }else if(BIT_IS_SET(PINF, 5)){
+            quit = true;
+            return;
+        }
+
+        draw_string(10, 10, "GAME OVER", FG_COLOUR);
+
+        if(count % 2 == 0){
+            draw_string(10, 20, "RESTART OR QUIT!", FG_COLOUR);
+        }
+
+        _delay_ms(100);
+        count++;
+        show_screen();
+    }
+}
+
 void manage_loop(){
 
     //if center joystick pressed game is paused
@@ -557,7 +586,7 @@ void manage_loop(){
     //if left button pressed start or reset game
     if(BIT_IS_SET(PINF, 6)){
         start_or_reset_game();
-        //SET_BIT(PORTB, 2);
+        SET_BIT(PORTB, 2);
     }
 
     //if right button pressed quit the game
@@ -568,6 +597,11 @@ void manage_loop(){
 	if (paused) {
 		return;
 	}
+
+    if(player_lives <= 0){
+        game_over();
+    }
+
     process();
 }
 
