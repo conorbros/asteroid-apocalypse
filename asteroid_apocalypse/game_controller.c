@@ -40,7 +40,7 @@ int turret_barrel_x;
 int turret_barrel_y;
 int ship_width = 15;
 int ship_height = 7;
-int ship_xc = LCD_X / 2 - ((int)15/2);
+int ship_xc = LCD_X/2 - ((int)15/2);
 int ship_yc = 41;
 double shooter_angle = 0;
 double last_plasma_time;
@@ -129,7 +129,7 @@ bool pixel_collision(int x0, int y0, int w0, int h0, char pixels0[], int x1, int
 }
 
 double get_elapsed_time(){
-    return (cycle_count * 65536.0 + TCNT3 ) * 256.0 / 8000000.0; 
+    return (cycle_count * 65536.0 + TCNT3 ) * 256.0 / 8000000.0;
 }
 
 int get_seconds_running(){
@@ -417,15 +417,15 @@ void process_fragment_collisions(){
 
 void process_collisions(){
 
-    process_asteroid_collisions();    
+    process_asteroid_collisions();
     process_boulder_collisions();
     process_fragment_collisions();
-    
+
 }
 
 void game_status(){
     if(!paused) return;
-    
+
     char time_output[20];
     int minutes = get_minutes_running();
     int seconds = get_seconds_running();
@@ -614,7 +614,7 @@ void intro_message(){
     "ooooooooooooooooooooo"
 	"o                   o"
 	"o   ooooo	  ooooo  o"
-    "o     o        o    o" 
+    "o     o        o    o"
     "o   ooooo    ooooo  o"
     "o                   o"
     "o        o          o"
@@ -629,7 +629,7 @@ void intro_message(){
 	"o                   o"
 	"ooooooooooooooooooooo";
 
-    
+
     int count = 0;
     int smiley_x[5] = {-21, 0, 22, 43, 65};
     while(count < 1000){
@@ -649,7 +649,7 @@ void intro_message(){
             if(smiley_x[i] > LCD_X){
                 smiley_x[i] = -22;
             }
-        }        
+        }
         show_screen();
         count++;
         _delay_ms(100);
