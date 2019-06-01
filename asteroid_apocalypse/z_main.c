@@ -35,11 +35,9 @@ double plasma_x[20];
 double plasma_y[20];
 double plasma_angle[20];
 
-int turret_base_x;
-int turret_base_y;
 int turret_barrel_x;
 int turret_barrel_y;
-int ship_xc = LCD_X / 2 - ((int)15/2);
+int starfighter_x = LCD_X / 2 - ((int)15/2);
 double shooter_angle = 0;
 double last_plasma_time;
 
@@ -59,7 +57,7 @@ int player_lives;
 
 volatile uint32_t cycle_count;
 
-char * spaceship =
+char * starfigher =
 "               "
 "               "
 "               "
@@ -156,7 +154,7 @@ void send_usb_serial(char * msg){
     usb_serial_write((uint8_t *) msg, strlen(msg));
 }
 
-int wait_int(char * wait_msg){
+int get_int(char * wait_msg){
     bool complete = false;
     int result = 0;
     int ch_code;
@@ -225,12 +223,6 @@ void spawn_fragment(int x, int y){
     fragment_count++;
 }
 
-void draw_fragments(){
-    for(int i = 0; i < fragment_count; i++){
-        draw_pixels(fragments_x[i], fragments_y[i], 3, 3, fragment, true);
-    }
-}
-
 void remove_fragment(int index){
     for(int i = index; i < fragment_count-1; i++){
         fragments_x[i] = fragments_x[i+1];
@@ -238,16 +230,6 @@ void remove_fragment(int index){
     }
     fragment_count--;
     player_points+=4;
-}
-
-void process_fragments(){
-    for(int i = 0; i < fragment_count; i++){
-        fragments_y[i] = fragments_y[i]+velocity;
-        if(fragments_y[i]+3.0 >= 40.0){
-            remove_fragment(i);
-            player_lives--;
-        }
-    }
 }
 
 void spawn_boulder(int x, int y){
@@ -261,63 +243,6 @@ void spawn_boulder(int x, int y){
     boulders_x[boulder_count] = x;
     boulders_y[boulder_count] = y;
     boulder_count++;
-}
-
-void draw_boulders(){
-    for(int i = 0; i < boulder_count; i++){
-        draw_pixels(boulders_x[i], boulders_y[i], 5, 5, boulder, true);
-    }
-}
-
-void process_boulders(){
-    for(int i = 0; i < boulder_count; i++){
-        boulders_y[i] = boulders_y[i]+velocity;
-        if(boulders_y[i]+5.0 >= 40.0){
-            remove_boulder(i);
-            player_lives--;
-        }
-    }
-}
-
-void left_LED_flash(){
-    double diff = get_elapsed_time() - led_timer;
-    double diff_flash = get_elapsed_time() - last_flash;
-
-    //clear the left led variables ready for the next flash
-    if(diff >= 2.0){
-        flash_left_led = false;
-        led_timer = 0;
-        last_flash = 0;
-        CLEAR_BIT(PORTB, 2);
-        spawning_asteroids = false;
-        return;
-    }
-
-    if(diff_flash >= 0.5){
-        CLEAR_BIT(PORTB, 2);
-        last_flash = get_elapsed_time();
-    }else{
-        SET_BIT(PORTB, 2);
-    }
-}
-
-void right_LED_flash(){
-    //clear the right led variables ready for the next flash
-    if(get_elapsed_time()-led_timer >= 2.0){
-        flash_right_led = false;
-        led_timer = 0;
-        last_flash = 0;
-        CLEAR_BIT(PORTB, 3);
-        spawning_asteroids = false;
-        return;
-    }
-
-    if(get_elapsed_time()-last_flash >= 0.5){
-        CLEAR_BIT(PORTB, 3);
-        last_flash = get_elapsed_time();
-    }else{
-        SET_BIT(PORTB, 3);
-    }
 }
 
 void flash_warning_lights(){
@@ -370,13 +295,7 @@ void spawn_asteroids(){
     flash_warning_lights();
 }
 
-void draw_asteriods(){
-    for(int i = 0; i < asteroid_count; i++){
-        draw_pixels(asteroids_x[i], asteroids_y[i], 7, 7, asteroid, true);
-    }
-}
-
-void process_asteroids(){
+void process_objects(){
     if(spawning_asteroids) return;
 
     for(int i = 0; i < asteroid_count; i++){
@@ -392,32 +311,95 @@ void process_asteroids(){
     if(asteroid_count == 0 && fragment_count == 0 && boulder_count == 0) {
         spawn_asteroids();
     }
-}
 
-void draw_ship() {
-	draw_pixels(ship_xc, 41, 15, 7, spaceship, true);
-    draw_line(turret_base_x, turret_base_y, turret_barrel_x, turret_barrel_y, FG_COLOUR);
-}
+    for(int i = 0; i < boulder_count; i++){
+        boulders_y[i] = boulders_y[i]+velocity;
+        if(boulders_y[i]+5.0 >= 40.0){
+            remove_boulder(i);
+            player_lives--;
+        }
+    }
 
-void draw_shield() {
-	for (int i = 0; i < LCD_X; i += 10) {
-		draw_line(i, 39, i+3, 39, FG_COLOUR);
-	}
-}
-
-void draw_plasma(){
-    for(int i = 0; i < plasma_count; i++){
-        draw_pixels(plasma_x[i], plasma_y[i], 2, 2, plasma, true);
+    for(int i = 0; i < fragment_count; i++){
+        fragments_y[i] = fragments_y[i]+velocity;
+        if(fragments_y[i]+3.0 >= 40.0){
+            remove_fragment(i);
+            player_lives--;
+        }
     }
 }
 
-void draw_everything() {
-	draw_ship();
-	draw_shield();
-    draw_plasma();
-    draw_fragments();
-    draw_boulders();
-    draw_asteriods();
+void left_LED_flash(){
+    double diff = get_elapsed_time() - led_timer;
+    double diff_flash = get_elapsed_time() - last_flash;
+
+    //clear the left led variables ready for the next flash
+    if(diff >= 2.0){
+        flash_left_led = false;
+        led_timer = 0;
+        last_flash = 0;
+        CLEAR_BIT(PORTB, 2);
+        spawning_asteroids = false;
+        return;
+    }
+
+    if(diff_flash >= 0.5){
+        CLEAR_BIT(PORTB, 2);
+        last_flash = get_elapsed_time();
+    }else{
+        SET_BIT(PORTB, 2);
+    }
+}
+
+void right_LED_flash(){
+    //clear the right led variables ready for the next flash
+    if(get_elapsed_time()-led_timer >= 2.0){
+        flash_right_led = false;
+        led_timer = 0;
+        last_flash = 0;
+        CLEAR_BIT(PORTB, 3);
+        spawning_asteroids = false;
+        return;
+    }
+
+    if(get_elapsed_time()-last_flash >= 0.5){
+        CLEAR_BIT(PORTB, 3);
+        last_flash = get_elapsed_time();
+    }else{
+        SET_BIT(PORTB, 3);
+    }
+}
+
+void draw_all() {
+
+    //draw starfighter
+    draw_pixels(starfighter_x, 41, 15, 7, starfigher, true);
+    draw_line(starfighter_x+((int)15/2), 45, turret_barrel_x, turret_barrel_y, FG_COLOUR);
+
+    //draw shield
+    for (int i = 0; i < LCD_X; i += 10) {
+		draw_line(i, 39, i+3, 39, FG_COLOUR);
+	}
+
+    //draw plasma
+    for(int i = 0; i < plasma_count; i++){
+        draw_pixels(plasma_x[i], plasma_y[i], 2, 2, plasma, true);
+    }
+
+    //draw fragments
+    for(int i = 0; i < fragment_count; i++){
+        draw_pixels(fragments_x[i], fragments_y[i], 3, 3, fragment, true);
+    }
+
+    //draw boulders
+    for(int i = 0; i < boulder_count; i++){
+        draw_pixels(boulders_x[i], boulders_y[i], 5, 5, boulder, true);
+    }
+
+    //draw asteroids
+    for(int i = 0; i < asteroid_count; i++){
+        draw_pixels(asteroids_x[i], asteroids_y[i], 7, 7, asteroid, true);
+    }
 }
 
 bool is_plasma_offscreen(int x, int y){
@@ -472,24 +454,22 @@ void process_ship(){
 	// (V × R2 ÷ R1) + (M2 - M1)
 	shooter_angle = ((double)left_adc * 120.0/1024) - 60.0;
 
-    turret_base_x = ship_xc + ((int)15/2);
-    turret_base_y = 45;
-    turret_barrel_x = turret_base_x + -4 * sin(M_PI * (shooter_angle *- 1) / 180);
-    turret_barrel_y = turret_base_y + -4 * cos(M_PI * (shooter_angle *- 1) / 180);
+    turret_barrel_x = (starfighter_x + ((int)15/2)) + -4 * sin(M_PI * (shooter_angle *- 1) / 180);
+    turret_barrel_y = 45 + -4 * cos(M_PI * (shooter_angle *- 1) / 180);
 
     //if ship is at the left edge, stop
-    if(ship_xc == 0 && moving_left){
+    if(starfighter_x == 0 && moving_left){
         ship_moving = false;
 
     //if ship is at the right edge, stop
-    }else if(ship_xc+15 == LCD_X && !moving_left){
+    }else if(starfighter_x+15 == LCD_X && !moving_left){
         ship_moving = false;
     }
 
-    if(ship_moving && moving_left && ship_xc > 0){
-        ship_xc -= 1;
-    }else if(ship_moving && !moving_left && ship_xc+15 < LCD_X){
-        ship_xc += 1;
+    if(ship_moving && moving_left && starfighter_x > 0){
+        starfighter_x -= 1;
+    }else if(ship_moving && !moving_left && starfighter_x+15 < LCD_X){
+        starfighter_x += 1;
     }
 }
 
@@ -630,7 +610,7 @@ void game_status(){
     }
     paused = false;
     clear_screen();
-    draw_everything();
+    draw_all();
     show_screen();
 }
 
@@ -682,7 +662,7 @@ void start_or_reset_game(){
     clear_screen();
     CLEAR_BIT(PORTB, 2);
     CLEAR_BIT(PORTB, 3);
-    ship_xc = LCD_X/2 - ((int)15/2);
+    starfighter_x = LCD_X/2 - ((int)15/2);
     paused = false;
     plasma_count = 0;
     boulder_count = 0;
@@ -702,20 +682,20 @@ void start_or_reset_game(){
         moving_left = true;
     }
 
-    draw_everything();
+    draw_all();
     show_screen();
 }
 
 void set_player_points(){
-    player_points = wait_int("Set the player's score: ");
+    player_points = get_int("Set the player's score: ");
 }
 
 void set_player_lives(){
-    player_lives = wait_int("Set the player's lives: ");
+    player_lives = get_int("Set the player's lives: ");
 }
 
 void move_ship(){
-    int new_x = wait_int("Move the ship to coorindate: ");
+    int new_x = get_int("Move the ship to coorindate: ");
 
     //if ship goes out of bounds move it in bounds;
     if(new_x < 0){
@@ -724,7 +704,7 @@ void move_ship(){
         new_x = LCD_X-15;
     }
 
-    ship_xc = new_x;
+    starfighter_x = new_x;
 }
 
 
@@ -763,6 +743,32 @@ void print_controls(){
     send_usb_serial("i: drop fragment\r\n");
 }
 
+void drop_fragment(){
+    if(fragment_count >= 20) return;
+
+    int x = get_int("\r\nFragment x: ");
+    int y = get_int("\r\nFragment y: ");
+
+    fragments_x[fragment_count] = x;
+    fragments_y[fragment_count] = (double)y;
+    fragment_count++;
+}
+
+void drop_boulder(){
+    if(boulder_count >= 10) return;
+
+    boulders_x[boulder_count] = get_int("\r\nBoulder x: ");
+    boulders_y[boulder_count] = (double)get_int("\r\nBoulder y: ");
+    boulder_count++;
+}
+
+void drop_asteroid(){
+    if(asteroid_count >= 5) return;
+
+    asteroids_x[asteroid_count] = get_int("\r\nAsteroid x: ");
+    asteroids_y[asteroid_count] = (double)get_int("\r\nAsteroid y: ");
+    asteroid_count++;
+}
 
 void serial_input(int16_t input){
     switch (input){
@@ -826,24 +832,24 @@ void serial_input(int16_t input){
             print_controls();
             break;
 
-        //move spaceship to coordinate
+        //move starfigher to coordinate
         case 'h':
             move_ship();
             break;
 
         //place asteroid at coordinate
         case 'j':
-            //drop_asteroid();
+            drop_asteroid();
             break;
 
         //place boulder at coordinate
         case 'k':
-            //drop_boulder();
+            drop_boulder();
             break;
 
         //place fragment at coordinate
         case 'i':
-            //drop_fragment();
+            drop_fragment();
             break;
 
         default:
@@ -866,9 +872,8 @@ void process(void) {
 
         process_ship();
         process_plasma();
-        process_asteroids();
-        process_boulders();
-        process_fragments();
+        process_objects();
+
 
         process_collisions();
     }
@@ -877,7 +882,7 @@ void process(void) {
     //sprintf(adc_status, "A: %f", shooter_angle);
 	//draw_string(10, 10, adc_status, FG_COLOUR);
 
-	draw_everything();
+	draw_all();
     show_screen();
 }
 
@@ -1072,7 +1077,7 @@ void setup( void ) {
     lcd_init(LCD_HIGH_CONTRAST);
     setup_timer();
     setup_usb_serial();
-	draw_everything();
+	draw_all();
 }
 
 int main(void) {
