@@ -19,18 +19,17 @@
 double velocity;
 
 int fragment_count = 0;
-double fragments_x[12];
-double fragments_y[12];
+int fragments_x[20];
+double fragments_y[20];
 
 int boulder_count = 0;
-double boulders_x[6];
-double boulders_y[6];
+int boulders_x[10];
+double boulders_y[10];
 
 int asteroid_count;
-double asteroids_x[3];
-double asteroids_y[3];
+int asteroids_x[5];
+double asteroids_y[5];
 
-int plasma_max = 20;
 int plasma_count = 0;
 double plasma_x[20];
 double plasma_y[20];
@@ -41,7 +40,6 @@ int turret_base_y;
 int turret_barrel_x;
 int turret_barrel_y;
 int ship_xc = LCD_X / 2 - ((int)15/2);
-int ship_yc = 41;
 double shooter_angle = 0;
 double last_plasma_time;
 
@@ -139,15 +137,11 @@ double get_elapsed_time(){
 }
 
 int get_seconds_running(){
-    double diff = get_elapsed_time();
-    int seconds = (int) diff % 60;
-    return seconds;
+    return (int) get_elapsed_time() % 60;
 }
 
 int get_minutes_running(){
-    double diff = get_elapsed_time();
-    int minutes = (int) diff / 60;
-    return minutes;
+    return (int) get_elapsed_time() / 60;
 }
 
 void start_timer(){
@@ -219,7 +213,6 @@ void remove_asteroid(int index){
 }
 
 void spawn_fragment(int x, int y){
-
     //ensure fragment spawns within the bounds of the screen
     if(x+3 > LCD_X){
         x = LCD_X - (x + 3 - LCD_X);
@@ -258,7 +251,6 @@ void process_fragments(){
 }
 
 void spawn_boulder(int x, int y){
-
     //ensure boulder spawns within the bounds of the screen
     if(x+5 > LCD_X){
         x = LCD_X - (x+3 - LCD_X);
@@ -310,11 +302,8 @@ void left_LED_flash(){
 }
 
 void right_LED_flash(){
-    double diff = get_elapsed_time() - led_timer;
-    double diff_flash = get_elapsed_time() - last_flash;
-
     //clear the right led variables ready for the next flash
-    if(diff >= 2.0){
+    if(get_elapsed_time()-led_timer >= 2.0){
         flash_right_led = false;
         led_timer = 0;
         last_flash = 0;
@@ -323,12 +312,11 @@ void right_LED_flash(){
         return;
     }
 
-    if(diff_flash >= 0.5){
+    if(get_elapsed_time()-last_flash >= 0.5){
         CLEAR_BIT(PORTB, 3);
         last_flash = get_elapsed_time();
     }else{
         SET_BIT(PORTB, 3);
-
     }
 }
 
@@ -356,17 +344,17 @@ void flash_warning_lights(){
 void spawn_asteroids(){
     spawning_asteroids = true;
     asteroid_count = 3;
-    double x = 0;
+    int x = 0;
     for(int i = 0; i < asteroid_count; i++){
 
         bool overlap = true;
         while(overlap && i > 0){
-            x = (double)random_int(0, LCD_X-7);
-            double x_right = x+7.0;
+            x = random_int(0, LCD_X-7);
+            int x_right = x+7.0;
 
             for(int l = 0; l < i; l++){
-                double x1 = asteroids_x[l];
-                double x2 = asteroids_x[l]+7.0;
+                int x1 = asteroids_x[l];
+                int x2 = asteroids_x[l]+7.0;
 
                 if((x >= x1 && x <= x2) || (x_right >= x1 && x_right <= x2)){
                     overlap = true;
@@ -407,7 +395,7 @@ void process_asteroids(){
 }
 
 void draw_ship() {
-	draw_pixels(ship_xc, ship_yc, 15, 7, spaceship, true);
+	draw_pixels(ship_xc, 41, 15, 7, spaceship, true);
     draw_line(turret_base_x, turret_base_y, turret_barrel_x, turret_barrel_y, FG_COLOUR);
 }
 
@@ -465,7 +453,7 @@ void process_plasma(){
 }
 
 void fire_cannon(int angle){
-    if(plasma_count == plasma_max) return;
+    if(plasma_count == 20) return;
 
     double diff = get_elapsed_time() - last_plasma_time;
 
@@ -566,7 +554,7 @@ void process_collisions(){
 void send_game_status(char * time, char * lives, char * score){
 
     send_usb_serial("\r\n");
-    send_usb_serial("-- Game status -- \r\n");
+    send_usb_serial("-Game status-\r\n");
 
     send_usb_serial(time);
     send_usb_serial("\r\n");
@@ -695,7 +683,6 @@ void start_or_reset_game(){
     CLEAR_BIT(PORTB, 2);
     CLEAR_BIT(PORTB, 3);
     ship_xc = LCD_X/2 - ((int)15/2);
-    ship_yc = 41;
     paused = false;
     plasma_count = 0;
     boulder_count = 0;
@@ -720,13 +707,11 @@ void start_or_reset_game(){
 }
 
 void set_player_points(){
-    int new_score = wait_int("Set the player's score: ");
-    player_points = new_score;
+    player_points = wait_int("Set the player's score: ");
 }
 
 void set_player_lives(){
-    int new_lives = wait_int("Set the player's lives: ");
-    player_lives = new_lives;
+    player_lives = wait_int("Set the player's lives: ");
 }
 
 void move_ship(){
@@ -848,17 +833,17 @@ void serial_input(int16_t input){
 
         //place asteroid at coordinate
         case 'j':
-            /* code */
+            //drop_asteroid();
             break;
 
         //place boulder at coordinate
         case 'k':
-            /* code */
+            //drop_boulder();
             break;
 
-        //place fragment at coordinatepppppp
+        //place fragment at coordinate
         case 'i':
-            /* code */
+            //drop_fragment();
             break;
 
         default:
@@ -1064,7 +1049,7 @@ void intro_message(){
         }
 
         draw_string(0, 0, "n10009671", FG_COLOUR);
-        draw_string(0, 10, "ASS APOCALYSE!", FG_COLOUR);
+        draw_string(0, 10, "Asteroid APOCALYSE!", FG_COLOUR);
 
         for(int i = 0; i < 5; i++){
             draw_pixels(smiley_x[i], 20,21, 17, smiley, true);
