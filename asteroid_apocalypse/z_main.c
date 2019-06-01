@@ -704,6 +704,41 @@ void move_ship(){
 }
 
 
+void print_controls(){
+    send_usb_serial("\r\n");
+    send_usb_serial("Teensy controls: \r\n");
+    send_usb_serial("left: move left\r\n");
+    send_usb_serial("right: move right\r\n");
+    send_usb_serial("up: fire\r\n");
+    send_usb_serial("down: display game status\r\n");
+    send_usb_serial("centre: pause game\r\n");
+
+    send_usb_serial("Left button: start/restart game\r\n");
+    send_usb_serial("Right button: quit\r\n");
+    send_usb_serial("Left wheel: set the aim of the turret\r\n");
+    send_usb_serial("Right wheel: set the speed of the game\r\n");
+
+    send_usb_serial("\r\n");
+    send_usb_serial("Computer controls: \r\n");
+    send_usb_serial("a: move left\r\n");
+    send_usb_serial("d: move right\r\n");
+    send_usb_serial("w: fire \r\n");
+    send_usb_serial("s: display game status\r\n");
+    send_usb_serial("r: start/reset game\r\n");
+    send_usb_serial("p: pause \r\n");
+    send_usb_serial("q: quit\r\n");
+
+    send_usb_serial("m: set speed\r\n");
+    send_usb_serial("l: set lives\r\n");
+    send_usb_serial("g: set score\r\n");
+    send_usb_serial("?: print controls\r\n");
+    send_usb_serial("h: move ship\r\n");
+    send_usb_serial("j: drop asteroid\r\n");
+
+    send_usb_serial("k: drop boulder\r\n");
+    send_usb_serial("i: drop fragment\r\n");
+}
+
 
 void serial_input(int16_t input){
     switch (input){
@@ -764,7 +799,7 @@ void serial_input(int16_t input){
 
         //display help instructions on screen
         case '?':
-            //print_controls();
+            print_controls();
             break;
 
         //move spaceship to coordinate
@@ -943,14 +978,11 @@ void enable_inputs() {
 }
 
 void setup_timer(void){
-
     //Initialise Timer 3 in normal mode so that it overflows with a period of approximately 2.1 seconds.
 	TCCR3A = 0;
 	TCCR3B = 4;
-
     //Enable timer overflow for Timer 3
 	TIMSK3 = 1;
-
     //turn on interupts
 	sei();
 }
