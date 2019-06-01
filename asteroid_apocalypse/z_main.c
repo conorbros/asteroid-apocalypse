@@ -1,6 +1,5 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -13,6 +12,9 @@
 #include "cab202_adc.h"
 #include <math.h>
 #include <stdint.h>
+#include "usb_serial.h"
+#include <ctype.h>
+#include "mybool.h"
 
 double velocity;
 
@@ -28,11 +30,11 @@ int asteroid_count;
 double asteroids_x[3];
 double asteroids_y[3];
 
-int plasma_max = 100;
+int plasma_max = 20;
 int plasma_count = 0;
-int plasma_x[100];
-int plasma_y[100];
-double plasma_angle[100];
+double plasma_x[20];
+double plasma_y[20];
+double plasma_angle[20];
 
 int turret_base_x;
 int turret_base_y;
@@ -152,6 +154,52 @@ void start_timer(){
     cycle_count = 0;
 }
 
+/**
+ *  USB SERIAL COMMUNICATION - START
+ */
+
+void send_usb_serial(char * msg){
+    usb_serial_write((uint8_t *) msg, strlen(msg));
+}
+
+int wait_int(char * wait_msg){
+    bool complete = false;
+    int result = 0;
+    int ch_code;
+
+    send_usb_serial(wait_msg);
+
+    while(!complete){
+        char usb_buffer[10];
+        ch_code = usb_serial_getchar();
+        if(ch_code >= 0){
+            if(!isdigit(ch_code)){
+                break;
+            }
+            result = result * 10 + (ch_code - '0');
+            snprintf(usb_buffer, sizeof(usb_buffer), "%c", ch_code);
+            send_usb_serial(usb_buffer);
+        }
+    }
+    send_usb_serial("\r\n");
+    return result;
+}
+
+void setup_usb_serial(void) {
+	usb_init();
+
+	while (!usb_configured()) {
+		// Block until USB is ready.
+        clear_screen();
+        draw_string(20, 20, "CONNECT USB", FG_COLOUR);
+        show_screen();
+	}
+}
+
+/**
+ *  USB SERIAL COMMUNICATION - END
+ */
+
 void remove_boulder(int index){
     for(int i = index; i < boulder_count-1; i++) {
         boulders_x[i] = boulders_x[i+1];
@@ -173,8 +221,8 @@ void remove_asteroid(int index){
 void spawn_fragment(int x, int y){
 
     //ensure fragment spawns within the bounds of the screen
-    if(x+3 == LCD_X){
-        x = LCD_X - (x+3 - LCD_X);
+    if(x+3 > LCD_X){
+        x = LCD_X - (x + 3 - LCD_X);
     }else if(x < 0) {
         x = 0;
     }
@@ -212,7 +260,7 @@ void process_fragments(){
 void spawn_boulder(int x, int y){
 
     //ensure boulder spawns within the bounds of the screen
-    if(x+5 == LCD_X){
+    if(x+5 > LCD_X){
         x = LCD_X - (x+3 - LCD_X);
     }else if(x < 0) {
         x = 0;
@@ -399,13 +447,13 @@ void remove_plasma(int index){
 
 void process_plasma(){
     for(int i = 0; i < plasma_count; i++){
-        int x1 = plasma_x[i];
-        int y1 = plasma_y[i];
+        double x1 = plasma_x[i];
+        double y1 = plasma_y[i];
 
-        int angle = plasma_angle[i];
+        double angle = plasma_angle[i];
 
-        int x2 = x1 + -2 * sin(M_PI * (angle*-1) / 180);
-        int y2 = y1 + -2 * cos(M_PI * (angle*-1) / 180);
+        double x2 = x1 + -1 * sin(M_PI * (angle*-1) / 180);
+        double y2 = y1 + -1 * cos(M_PI * (angle*-1) / 180);
 
         if(is_plasma_offscreen(x1, y1)){
             remove_plasma(i);
@@ -434,7 +482,7 @@ void process_ship(){
     long left_adc = adc_read(0);
 
 	// (V × R2 ÷ R1) + (M2 - M1)
-	shooter_angle = ((double)left_adc * 120.0/1023.0) - 60.0;
+	shooter_angle = ((double)left_adc * 120.0/1024) - 60.0;
 
     turret_base_x = ship_xc + ((int)15/2);
     turret_base_y = 45;
@@ -515,10 +563,10 @@ void process_collisions(){
 
 }
 
-void game_status(){
-    if(!paused) return;
 
-    char time_output[20];
+
+void game_status(){
+    char time_output[12];
     int minutes = get_minutes_running();
     int seconds = get_seconds_running();
 
@@ -534,11 +582,15 @@ void game_status(){
         sprintf(time_output, "Time: 00:%d", seconds);
     }
 
-    char lives_output[20];
+    char lives_output[10];
     sprintf(lives_output, "Lives: %d", player_lives);
 
-    char score_output[20];
+    char score_output[11];
     sprintf(score_output, "Points: %d", player_points);
+
+    //send game status to computer and display on teensy if game is paused
+    //send_game_status(time_output, lives_output, score_output);
+    if(!paused) return;
 
     //wait until center joystick pressed to continue game
     while(!BIT_IS_SET(PINB, 0)){
@@ -555,7 +607,31 @@ void game_status(){
     show_screen();
 }
 
-void process_input(){
+void ship_left(){
+    //if moving right and left pressed, stop the ship
+    if(!moving_left && ship_moving){
+        ship_moving = false;
+
+    //if not moving, move left
+    }else if(!ship_moving){
+        moving_left = true;
+        ship_moving = true;
+    }
+}
+
+void ship_right(){
+    //if moving left and right pressed, stop the ship
+    if(moving_left && ship_moving){
+        ship_moving = false;
+
+    //if not moving, move right
+    }else if(!ship_moving){
+        ship_moving = true;
+        moving_left = false;
+    }
+}
+
+void process_ship_control(){
 
     // joystick up
     if (BIT_IS_SET(PIND, 1)) {
@@ -564,54 +640,15 @@ void process_input(){
 
     //joystick left
     } else if (BIT_IS_SET(PINB, 1)) {
-
-        //if moving right and left pressed, stop the ship
-        if(!moving_left && ship_moving){
-            ship_moving = false;
-
-        //if not moving, move left
-        }else if(!ship_moving){
-            moving_left = true;
-            ship_moving = true;
-        }
+        ship_left();
 
     //joystick right
     } else if (BIT_IS_SET(PIND, 0)) {
-
-        //if moving left and right pressed, stop the ship
-        if(moving_left && ship_moving){
-            ship_moving = false;
-
-        //if not moving, move right
-        }else if(!ship_moving){
-            ship_moving = true;
-            moving_left = false;
-        }
+        ship_right();
     }
 
     long right_adc = adc_read(1);
     velocity = right_adc/(double)1023;
-}
-
-void process(void) {
-	clear_screen();
-
-    process_input();
-
-    process_ship();
-    process_plasma();
-    process_asteroids();
-    process_boulders();
-    process_fragments();
-
-    process_collisions();
-
-    //char adc_status[15];
-    //sprintf(adc_status, "A: %f", shooter_angle);
-	//draw_string(10, 10, adc_status, FG_COLOUR);
-
-	draw_everything();
-    show_screen();
 }
 
 void start_or_reset_game(){
@@ -640,6 +677,148 @@ void start_or_reset_game(){
     }
 
     draw_everything();
+    show_screen();
+}
+
+void set_player_points(){
+    int new_score = wait_int("Set the player's score: ");
+    player_points = new_score;
+}
+
+void set_player_lives(){
+    int new_lives = wait_int("Set the player's lives: ");
+    player_lives = new_lives;
+}
+
+void move_ship(){
+    int new_x = wait_int("Move the ship to coorindate: ");
+
+    //if ship goes out of bounds move it in bounds;
+    if(new_x < 0){
+        new_x = 0;
+    }else if(new_x+15 > LCD_X){
+        new_x = LCD_X-15;
+    }
+
+    ship_xc = new_x;
+}
+
+
+
+void serial_input(int16_t input){
+    switch (input){
+        //move ship left
+        case 'a':
+            ship_left();
+            break;
+
+        //move ship right
+        case 'd':
+            ship_right();
+            break;
+
+        //fire cannon
+        case 'w':
+            fire_cannon(shooter_angle);
+            break;
+
+        //send and display game status
+        case 's':
+            //game_status();
+            break;
+
+        //start/reset game
+        case 'r':
+            start_or_reset_game();
+            break;
+
+        //pause game
+        case 'p':
+            paused = !paused;
+            break;
+
+        //quit game
+        case 'q':
+            quit = true;
+            break;
+
+        //set aim of turret
+        case 't':
+            /* code */
+            break;
+
+        //set the speed of the game
+        case 'm':
+            /* code */
+            break;
+
+        //set player lives
+        case 'l':
+            set_player_lives();
+            break;
+
+        //set the player score
+        case 'g':
+            set_player_points();
+            break;
+
+        //display help instructions on screen
+        case '?':
+            //print_controls();
+            break;
+
+        //move spaceship to coordinate
+        case 'h':
+            move_ship();
+            break;
+
+        //place asteroid at coordinate
+        case 'j':
+            /* code */
+            break;
+
+        //place boulder at coordinate
+        case 'k':
+            /* code */
+            break;
+
+        //place fragment at coordinatepppppp
+        case 'i':
+            /* code */
+            break;
+
+        default:
+            break;
+        }
+}
+
+void process_serial_input(){
+    int16_t input = usb_serial_getchar();
+	if (input >= 0) {
+        serial_input(input);
+	}
+}
+
+void process(void) {
+	clear_screen();
+
+    if(!paused){
+        process_ship_control();
+
+        process_ship();
+        process_plasma();
+        process_asteroids();
+        process_boulders();
+        process_fragments();
+
+        process_collisions();
+    }
+
+    //char adc_status[15];
+    //sprintf(adc_status, "A: %f", shooter_angle);
+	//draw_string(10, 10, adc_status, FG_COLOUR);
+
+	draw_everything();
     show_screen();
 }
 
@@ -686,7 +865,19 @@ void game_over(){
     }
 }
 
+void quit_game(){
+    clear_screen();
+    for(int i = 0; i <= LCD_Y; i++){
+        draw_line(0, i, LCD_X, i, FG_COLOUR);
+    }
+    draw_string(20, 10, "n10009671", BG_COLOUR);
+    show_screen();
+}
+
+
+
 void manage_loop(){
+    process_serial_input();
 
     //if center joystick pressed game is paused
     if (BIT_IS_SET(PINB, 0)) {
@@ -708,10 +899,6 @@ void manage_loop(){
     if(BIT_IS_SET(PINF, 5)){
         quit = true;
     }
-
-	if(paused){
-		return;
-	}
 
     if(flash_left_led){
         //if the led is starting to flash start its timer
@@ -828,16 +1015,8 @@ void setup( void ) {
     //	Initialise the LCD display using the default contrast setting.
     lcd_init(LCD_HIGH_CONTRAST);
     setup_timer();
+    setup_usb_serial();
 	draw_everything();
-}
-
-void quit_game(){
-    clear_screen();
-    for(int i = 0; i <= LCD_Y; i++){
-        draw_line(0, i, LCD_X, i, FG_COLOUR);
-    }
-    draw_string(20, 10, "n10009671", BG_COLOUR);
-    show_screen();
 }
 
 int main(void) {
