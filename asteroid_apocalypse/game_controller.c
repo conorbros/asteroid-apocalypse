@@ -833,7 +833,10 @@ void setup( void ) {
 
 void quit_game(){
     clear_screen();
-    draw_string(20, 10, "n10009671", FG_COLOUR);
+    for(int i = 0; i <= LCD_Y; i++){
+        draw_line(0, i, LCD_X, i, FG_COLOUR);
+    }
+    draw_string(20, 10, "n10009671", BG_COLOUR);
     show_screen();
 }
 
