@@ -50,6 +50,7 @@ bool flash_left_led = false;
 double led_timer;
 bool flash_right_led = false;
 double last_flash;
+bool spawning_asteroids;
 
 bool paused = false;
 bool quit = false;
@@ -248,6 +249,7 @@ void left_LED_flash(){
         led_timer = 0;
         last_flash = 0;
         CLEAR_BIT(PORTB, 2);
+        spawning_asteroids = false;
         return;
     }
 
@@ -269,6 +271,7 @@ void right_LED_flash(){
         led_timer = 0;
         last_flash = 0;
         CLEAR_BIT(PORTB, 3);
+        spawning_asteroids = false;
         return;
     }
 
@@ -303,6 +306,7 @@ void flash_warning_lights(){
 }
 
 void spawn_asteroids(){
+    spawning_asteroids = true;
     asteroid_count = 3;
     double x = 0;
     for(int i = 0; i < asteroid_count; i++){
@@ -337,6 +341,8 @@ void draw_asteriods(){
 }
 
 void process_asteroids(){
+    if(spawning_asteroids) return;
+
     for(int i = 0; i < asteroid_count; i++){
         asteroids_y[i] = asteroids_y[i]+velocity;
 
@@ -534,7 +540,8 @@ void game_status(){
     char score_output[20];
     sprintf(score_output, "Points: %d", player_points);
 
-    while(!BIT_IS_SET(PIND, 1)){
+    //wait until center joystick pressed to continue game
+    while(!BIT_IS_SET(PINB, 0)){
         clear_screen();
         draw_string(0, 0, time_output, FG_COLOUR);
         draw_string(0, 20, lives_output, FG_COLOUR);
@@ -542,6 +549,7 @@ void game_status(){
         _delay_ms(100);
         show_screen();
     }
+    paused = false;
     clear_screen();
     draw_everything();
     show_screen();
