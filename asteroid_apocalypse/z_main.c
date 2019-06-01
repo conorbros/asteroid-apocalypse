@@ -563,6 +563,45 @@ void process_collisions(){
 
 }
 
+void send_game_status(char * time, char * lives, char * score){
+
+    send_usb_serial("\r\n");
+    send_usb_serial("-- Game status -- \r\n");
+
+    send_usb_serial(time);
+    send_usb_serial("\r\n");
+    send_usb_serial(lives);
+    send_usb_serial("\r\n");
+    send_usb_serial(score);
+    send_usb_serial("\r\n");
+
+    char formatted_string[18];
+
+    sprintf(formatted_string, "Asteroids: %d", asteroid_count);
+    send_usb_serial(formatted_string);
+    send_usb_serial("\r\n");
+
+    sprintf(formatted_string, "Boulders: %d", boulder_count);
+    send_usb_serial(formatted_string);
+    send_usb_serial("\r\n");
+
+    sprintf(formatted_string, "Fragments: %d", fragment_count);
+    send_usb_serial(formatted_string);
+    send_usb_serial("\r\n");
+
+    sprintf(formatted_string, "Plasma bolts: %d", plasma_count);
+    send_usb_serial(formatted_string);
+    send_usb_serial("\r\n");
+
+    sprintf(formatted_string, "Aim: %d", (int)shooter_angle);
+    send_usb_serial(formatted_string);
+    send_usb_serial("\r\n");
+
+    int game_speed = velocity * 10;
+    sprintf(formatted_string, "Speed: %d", game_speed);
+    send_usb_serial(formatted_string);
+    send_usb_serial("\r\n");
+}
 
 
 void game_status(){
@@ -589,7 +628,7 @@ void game_status(){
     sprintf(score_output, "Points: %d", player_points);
 
     //send game status to computer and display on teensy if game is paused
-    //send_game_status(time_output, lives_output, score_output);
+    send_game_status(time_output, lives_output, score_output);
     if(!paused) return;
 
     //wait until center joystick pressed to continue game
@@ -759,7 +798,7 @@ void serial_input(int16_t input){
 
         //send and display game status
         case 's':
-            //game_status();
+            game_status();
             break;
 
         //start/reset game
