@@ -1070,7 +1070,41 @@ ISR(TIMER3_OVF_vect){
 }
 
 void intro_message(){
+    char * smiley =
+    "ooooooooooooooooooooo"
+	"o                   o"
+	"o   o          o    o"
+    "o                   o"
+    "o                   o"
+    "o   oooooooooooo    o"
+    "o                   o"
+    "ooooooooooooooooooooo";
 
+
+    int count = 0;
+    int smiley_x[5] = {-21, 0, 22, 43, 65};
+    while(count < 1000){
+        clear_screen();
+
+        //if left button pressed skip intro
+        if(BIT_IS_SET(PINF, 6) || usb_serial_getchar() =='r'){
+            return;
+        }
+
+        draw_string(0, 0, "n10009671", FG_COLOUR);
+        draw_string(0, 10, "Asteroid shooter", FG_COLOUR);
+
+        for(int i = 0; i < 5; i++){
+            draw_pixels(smiley_x[i], 20,21, 8, smiley, true);
+            smiley_x[i]++;
+            if(smiley_x[i] > LCD_X){
+                smiley_x[i] = -22;
+            }
+        }
+        show_screen();
+        count++;
+        _delay_ms(100);
+    }
 }
 
 void setup( void ) {
