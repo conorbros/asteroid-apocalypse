@@ -324,11 +324,8 @@ void process_objects(){
 }
 
 void left_LED_flash(){
-    double diff = get_elapsed_time() - led_timer;
-    double diff_flash = get_elapsed_time() - last_flash;
-
     //clear the left led variables ready for the next flash
-    if(diff >= 2.0){
+    if(get_elapsed_time()-led_timer >= 2.0){
         flash_left_led = false;
         led_timer = 0;
         last_flash = 0;
@@ -337,7 +334,7 @@ void left_LED_flash(){
         return;
     }
 
-    if(diff_flash >= 0.5){
+    if(get_elapsed_time()-last_flash >= 0.5){
         CLEAR_BIT(PORTB, 2);
         last_flash = get_elapsed_time();
     }else{
@@ -446,7 +443,7 @@ void process_starfighter(){
     long left_adc = adc_read(0);
 
     if(aim_manual_timer-get_elapsed_time() || aim_manual_timer == 0.0){
-        shooter_angle = ((double)left_adc * 120.0/1024) - 60.0;
+        shooter_angle = ((double)left_adc * 120.0/1023) - 60.0;
         aim_manual_timer = 0.0;
     }
 
@@ -568,7 +565,7 @@ void send_game_status(char * time, char * lives, char * score){
 }
 
 
-void game_status(){
+void game_status(bool p){
     char time_output[12];
     int minutes = get_minutes_running();
     int seconds = get_seconds_running();
@@ -593,7 +590,7 @@ void game_status(){
 
     //send game status to computer and display on teensy if game is paused
     send_game_status(time_output, lives_output, score_output);
-    if(!paused) return;
+    if(!p) return;
 
     //wait until center joystick pressed to continue game
     while(!BIT_IS_SET(PINB, 0)){
@@ -653,7 +650,7 @@ void process_ship_control(){
     long right_adc = adc_read(1);
 
     if(get_elapsed_time()-speed_manual_timer >= 1.0 || speed_manual_timer == 0.0){
-        velocity = right_adc/(double)1024;
+        velocity = right_adc/(double)1023;
         speed_manual_timer = 0.0;
     }
 }
@@ -662,19 +659,25 @@ void start_or_reset_game(){
     clear_screen();
     CLEAR_BIT(PORTB, 2);
     CLEAR_BIT(PORTB, 3);
+
     starfighter_x = LCD_X/2 - ((int)15/2);
     paused = true;
     new_game = true;
+    flash_left_led = false;
+    flash_right_led = false;
+    led_timer = 0.0;
 
     plasma_count = 0;
     boulder_count = 0;
     fragment_count = 0;
     player_points = 0;
     player_lives = 5;
+
     spawn_asteroids();
+
     starfighter_moving = true;
     last_plasma_time = 1.0;
-    last_flash = 0;
+    last_flash = 0.0;
     shooter_angle = 0.0;
 
     turret_barrel_x = starfighter_x + ((int)15/2);
@@ -682,7 +685,6 @@ void start_or_reset_game(){
 
     aim_manual_timer = 0.0;
     speed_manual_timer = 0.0;
-
 
     if(random_int(0, 50) > 25){
         moving_left = false;
@@ -782,11 +784,11 @@ void set_turrent_aim(){
 
     if(aim < 0){
         aim = 0;
-    }else if(aim > 1024){
-        aim = 1024;
+    }else if(aim > 1023){
+        aim = 1023;
     }
 
-    shooter_angle = ((double)aim * 120.0/1024) - 60.0;
+    shooter_angle = ((double)aim * 120.0/1023) - 60.0;
     aim_manual_timer = get_elapsed_time();
 }
 
@@ -795,11 +797,11 @@ void set_game_speed(){
 
     if(speed < 0){
         speed = 0;
-    }else if(speed > 1024){
-        speed = 1024;
+    }else if(speed > 1023){
+        speed = 1023;
     }
 
-    velocity = (double)speed/(double)1024;
+    velocity = (double)speed/(double)1023;
     speed_manual_timer = get_elapsed_time();
 }
 
@@ -834,7 +836,7 @@ void serial_input(int16_t input){
 
         //send and display game status
         case 's':
-            game_status();
+            game_status(paused);
             break;
 
         //start/reset game
@@ -938,6 +940,10 @@ void game_over(){
     double led_start_time = get_elapsed_time();
     int count = 0;
 
+    //display game status and say game over on computer screen
+    game_status(false);
+    send_usb_serial("\r\nGAME OVER");
+    
     //turn on left LED
     SET_BIT(PORTB, 2);
     //turn on right LED
@@ -987,7 +993,7 @@ void manage_loop(){
     //if joystick down
     if (BIT_IS_SET(PINB, 7)) {
 		//send and display game status
-        game_status();
+        game_status(paused);
     }
 
     //if left button pressed start or reset game

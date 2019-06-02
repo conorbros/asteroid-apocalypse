@@ -1,29 +1,149 @@
 Test 1
-Category        : ... Insert feature numbers here. See Rubric for valid values ...
-Input Sequence  : ... Insert input commands here ...
-Expected Outcome: ... Insert expected outcome here ...
+Category        : 2
+Input Sequence  : Start the game
+Expected Outcome: A shield can be observed in row 39, represented by a dotted line
 
 Test 2
-Category        : ... Insert feature numbers here. See Rubric for valid values ...
-Input Sequence  : ... Insert input commands here ...
-Expected Outcome: ... Insert expected outcome here ...
+Category        : 3.i, 3.ii, 3.iii
+Input Sequence  : Start the game
+Expected Outcome: A starfighter can be observed at the bottom of the screen, it is 7x15 pixels. It has a small line representing the plasma cannon on the top of it.
 
 Test 3
-Category        : ... Insert feature numbers here. See Rubric for valid values ...
-Input Sequence  : ... Insert input commands here ...
-Expected Outcome: ... Insert expected outcome here ...
+Category        : 3.iv, 3.v
+Input Sequence  : Start the game
+Expected Outcome: The starfighter is staionary in the centre of the screen, in the bottom 8 rows of the screen.
 
 Test 4
-Category        : ... Insert feature numbers here. See Rubric for valid values ...
-Input Sequence  : ... Insert input commands here ...
-Expected Outcome: ... Insert expected outcome here ...
+Category        : 3.vi, 3.vii
+Input Sequence  : Start the game and unpause by pressing the center joystick
+Expected Outcome: The starfighter does not move vertically or overlap the shield
 
 Test 5
-Category        : ... Insert feature numbers here. See Rubric for valid values ...
-Input Sequence  : ... Insert input commands here ...
-Expected Outcome: ... Insert expected outcome here ...
+Category        : 4.i, 4.ii, 4.iii, 4.iv
+Input Sequence  : Start the game and unpause by pressing the center joystick
+Expected Outcome: 3 asteroids can be observed falling from the top of the screen 2 seconds after the the game starts, they spawn at random positions and scroll smoothly into view, they do not go outside of the border of the screen and fall downwards only.
 
 Test 6
-Category        : ... Insert feature numbers here. See Rubric for valid values ...
-Input Sequence  : ... Insert input commands here ...
-Expected Outcome: ... Insert expected outcome here ...
+Category        : 4.v, 4.vi, 4.viii, 4.ix, 4.x, 4.xi
+Input Sequence  : Set the game speed to 0 using the right wheel, and shoot one asteroid, and then a boulder, then one fragment. Set the game speed to moving again. After the objects have hit the shield, send game status to the game with joystick down.
+Expected Outcome: After shooting the asteroid, boulder and fragment, they can observed splitting in that order. When the objects hit the shield, they disappear, when this happens the lives can be observed going down in the game status. The asteroids are 7x7 shaped like diamond, the boulders 5x5 shaped like diamond, fragments 3x3 shaped like plus.
+
+Test 7
+Category        : 5.i, 5.ii, 5.iii
+Input Sequence  : Start the game and play for a couple seconds, shooting objects. Then pause and put joystick down.
+Expected Outcome: The following can be observed on the teensy screen: Game time, Lives, Score.
+
+Test 8
+Category        : 5.iv, 5.v, 5.vi, 5.vii, 5.viii, 5.ix, 5.x, 5.xi, 5.xii
+Input Sequence  : Start the game and play for a couple seconds, shooting objects. Then put joystick down.
+Expected Outcome: The following can be observed on the computer screen: Game time, lives, score, asteroid count, boulder count, fragments count, plasma count, aim and speed.
+
+Test 9
+Category        : 6.i, 6.ii
+Input Sequence  : Start the game and play for a couple seconds. Put joystick down. Pause game and then put joystick down.
+Expected Outcome: On first joystick down the game only displays status on computer, second time it displays on teensy screen and computer.
+
+Test 10
+Category        : 7.i
+Input Sequence  : Start the game and let the starfighter move, and shoot at the asteroids at an angle.
+Expected Outcome: The plasma bolts can be observed going within the bounds of its 7x7 box and not removing it, only when there is a pixel level collision
+
+Test 11
+Category        : 8.i, 8.ii, 8.iii, 8.iv, 8.v, 8.vi, 8.vii, 8.viii
+Input Sequence  : Start the game and unpause. Use joystick left and right to control movement. Use keys a and d to control movement after.
+Expected Outcome: At the beginning of the game, the Starfighter is randomly assigned a velocity, by default, that is speed 1 in either the left or right direction.  From a stationary position, pressing Joystick Left or 'a' causes the Starfighter's velocity to increase in the left direction.  From a stationary position, pressing Joystick Right or 'd' causes the Starfighter's velocity to increase in the right direction. From a left velocity, pressing Joystick Left or 'a' again, results in no change. From a left velocity, pressing Joystick Right or 'd', causes the Starfighter's velocity to change to 0, stopping the Starfighter's movement. From a right velocity, pressing Joystick Right or 'd' again, results in no change. From a right velocity, pressing Joystick Left or 'a', causes the Starfighter's velocity to change to 0, stopping the Starfighter's movement. When the Starfighter hits either side of the screen, it stops moving.
+
+Test 12
+Category        : 9.i, 9.ii, 9.iii, 9.iv
+Input Sequence  : Start the game and unpause, set the speed to zero to test. Turn the plasma cannon all the way to the left and send game status. Turn the plasma cannon all the way to the right and send game status. Use key o to set the plasma cannon angle to 10.
+Expected Outcome: All the way to the left, the plasma cannon angle will be -60, all the way to the right, it will be 60. After setting the cannon via the computer, it will stay at that angle for one second and then revert back to reading from the wheel.
+
+Test 13
+Category        : 10.i, 10.ii, 10.iii, 10.iv, 10.v
+Input Sequence  : Start the game and unpause. Press key w. Press joystick up. Observe plasma bolts firing. Shoot asteriod. Hold joystick up for 10 seconds;
+Expected Outcome: Pressing w fires a plasma. Joystick up fires a plasma. Plasma disappears when it hits an object, plasma disappears when it goes offscreen. Plasma stops firing after 20 have been fired.
+
+Test 14
+Category        : 10.vi, 10.vii, 10.viii
+Input Sequence  : Start the game and unpause. Let asteriods appear on screen and then set game speed to zero. Shoot an asteroid and then joystick down. Shoot an boulder and then joystick down. Shoot an fragment and then joystick down.
+Expected Outcome: Asteroid increments score by 1. Boulder incremnets score by 2. Fragment increments score by 4.
+
+Test 15
+Category        : 11.i, 11.ii, 11.iii, 11.iv, 11.v
+Input Sequence  : Start the game. Wait for 3 seconds then press left button. Reset the game. Wait and then press r.
+Expected Outcome: An intro screen is displayed, showing the student number, game title and an animation. Pressing left button or key r skips this.
+
+Test 16
+Category        : 12.i, 12.ii, 12.iii, 12.iv, 12.v, 12.vi, 12.vii
+Input Sequence  : Start the game, put joystick down.
+Expected Outcome: The starfighter and shield are visible on screen, the game is paused, no plasma or asteroids are visible. On the status screen, the game shows 5 lives, 0 score, game time 00:00.
+
+Test 17
+Category        : 13.i, 13.ii
+Input Sequence  : Start the game and unpause, press joystick down rapidly for 5 seconds.
+Expected Outcome: In the game status being set to the computer, the time can be observed incrementing in 1 second intervals.
+
+Test 18
+Category        : 14.i, 14.ii, 14.iii
+Input Sequence  : Start the game and unpause, pause again after a couple seconds. Display game status, then unpause. Send game status again.
+Expected Outcome: The time does not increment during pause, starts incrementing again after game is unpaused.
+
+Test 19
+Category        : 15.i, 15.ii
+Input Sequence  : Start the game, observe asteroids falling. Restart by pressing left button. Repeat this x5.
+Expected Outcome:  If there are more Asteroids on the left side of the screen, only the Left LED flashes. If there are more Asteroids on the right side of the screen, only the Right LED flashes.
+
+Test 20
+Category        : 16.i, 16.ii, 16.iii, 16.iv
+Input Sequence  : Start and unpause the game, set speed to max. Wait for game over screen.
+Expected Outcome: Game status and game over is displayed on the computer. The backlight fades off. Game is displayed on the screen. The LEDS turn on for a duration of 2 seconds. The back-light fades back on using PWM, the LEDs turn off, and options to quit or restart are given.
+
+Test 21
+Category        : 17
+Input Sequence  : Start the game, unpause. Press left button.
+Expected Outcome: Game is reset back to start state after the left button is pressed.
+
+Test 22
+Category        : 18
+Input Sequence  : Press the right button.
+Expected Outcome: When the right button is pressed, the screen goes inverse and displays the student number.
+
+Test 23
+Category        : 19.i, 9.ii
+Input Sequence  : Start the game and pause, move wheel slowly to observe game speeding up and down. Then, press key m and enter 0. Press m after 2 seconds and enter 1023.
+Expected Outcome: Game speed increases moving the wheel right and decreases moving the wheel left. Game speed stops for 1 second when 0 is entered into computer. Game speed goes to max after entering 1023 into the computer.
+
+Test 24
+Category        : 21.i
+Input Sequence  : Start game and unpause. Press key l and enter 10. Press joystick down after.
+Expected Outcome: Game status will show the lives as 10.
+
+Test 25
+Category        : 21.ii
+Input Sequence  : Start game and unpause. Press key g and enter 15. Press joystick down after.
+Expected Outcome: Game status will show the score as 15.
+
+Test 26
+Category        : 21.iii
+Input Sequence  : Start game. Press key ?.
+Expected Outcome: Controls will be displayed on the computer screen.
+
+Test 27
+Category        : 21.iv
+Input Sequence  : Start game. Press key h and enter 0.
+Expected Outcome: Ship will move to the left side of the screen.
+
+Test 28
+Category        : 21.v
+Input Sequence  : Start game. Press key j and enter 10, 10.
+Expected Outcome: Asteroid will be dropped onto the screen at 10, 10.
+
+Test 29
+Category        : 21.vi
+Input Sequence  : Start game. Press key k and enter 10, 20.
+Expected Outcome: Boulder will be dropped onto the screen at 10, 20.
+
+Test 30
+Category        : 21.vii
+Input Sequence  : Start game. Press key i and enter 10, 20.
+Expected Outcome: Fragment will be dropped onto the screen at 15, 15.
