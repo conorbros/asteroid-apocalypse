@@ -55,6 +55,9 @@ bool quit = false;
 int player_points;
 int player_lives;
 
+double aim_manual_timer;
+double speed_manual_timer = 0.0;
+
 volatile uint32_t cycle_count;
 
 char * starfigher =
@@ -655,7 +658,11 @@ void process_ship_control(){
     }
 
     long right_adc = adc_read(1);
-    velocity = right_adc/(double)1023;
+
+    if(get_elapsed_time()-speed_manual_timer >= 1.0 || speed_manual_timer == 0.0){
+        velocity = right_adc/(double)1024;
+        speed_manual_timer = 0.0;
+    }
 }
 
 void start_or_reset_game(){
@@ -770,6 +777,31 @@ void drop_asteroid(){
     asteroid_count++;
 }
 
+void set_turrent_aim(){
+    int aim = get_int("\r\nAim: ");
+
+    if(aim < 0){
+        aim = 0;
+    }else if(aim > 1024){
+        aim = 1024;
+    }
+
+    shooter_angle = ((double)aim * 120.0/1024) - 60.0;
+}
+
+void set_game_speed(){
+    int speed = get_int("\r\nSpeed: ");
+
+    if(speed < 0){
+        speed = 0;
+    }else if(speed > 1024){
+        speed = 1024;
+    }
+
+    velocity = (double)speed/(double)1024;
+    speed_manual_timer = get_elapsed_time();
+}
+
 void serial_input(int16_t input){
     switch (input){
         //move ship left
@@ -809,12 +841,12 @@ void serial_input(int16_t input){
 
         //set aim of turret
         case 't':
-            /* code */
+            set_turrent_aim();
             break;
 
         //set the speed of the game
         case 'm':
-            /* code */
+            set_game_speed();
             break;
 
         //set player lives
@@ -1023,50 +1055,7 @@ ISR(TIMER3_OVF_vect){
 }
 
 void intro_message(){
-    char * smiley =
-    "ooooooooooooooooooooo"
-	"o                   o"
-	"o   ooooo	  ooooo  o"
-    "o     o        o    o"
-    "o   ooooo    ooooo  o"
-    "o                   o"
-    "o        o          o"
-    "o         o         o"
-    "o          o        o"
-    "o        oooo       o"
-    "o                   o"
-    "o   oooooooooooooo  o"
-    "o    o          o   o"
-    "o     o        o    o"
-    "o      ooooooo      o"
-	"o                   o"
-	"ooooooooooooooooooooo";
 
-
-    int count = 0;
-    int smiley_x[5] = {-21, 0, 22, 43, 65};
-    while(count < 1000){
-        clear_screen();
-
-        //if left button pressed skip intro
-        if(BIT_IS_SET(PINF, 6)){
-            return;
-        }
-
-        draw_string(0, 0, "n10009671", FG_COLOUR);
-        draw_string(0, 10, "Asteroid APOCALYSE!", FG_COLOUR);
-
-        for(int i = 0; i < 5; i++){
-            draw_pixels(smiley_x[i], 20,21, 17, smiley, true);
-            smiley_x[i]++;
-            if(smiley_x[i] > LCD_X){
-                smiley_x[i] = -22;
-            }
-        }
-        show_screen();
-        count++;
-        _delay_ms(100);
-    }
 }
 
 void setup( void ) {
