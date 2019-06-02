@@ -41,7 +41,7 @@ int starfighter_x = LCD_X / 2 - ((int)15/2);
 double shooter_angle = 0;
 double last_plasma_time;
 
-bool ship_moving = true;
+bool starfighter_moving = true;
 bool moving_left = true;
 
 bool flash_left_led = false;
@@ -50,12 +50,12 @@ bool flash_right_led = false;
 double last_flash;
 bool spawning_asteroids;
 
+bool new_game = true;
 bool paused = false;
-bool quit = false;
 int player_points;
 int player_lives;
 
-double aim_manual_timer;
+double aim_manual_timer = 0.0;
 double speed_manual_timer = 0.0;
 
 volatile uint32_t cycle_count;
@@ -451,27 +451,30 @@ void fire_cannon(int angle){
     }
 }
 
-void process_ship(){
+void process_starfighter(){
     long left_adc = adc_read(0);
 
 	// (V × R2 ÷ R1) + (M2 - M1)
-	shooter_angle = ((double)left_adc * 120.0/1024) - 60.0;
+    if(aim_manual_timer-get_elapsed_time() || aim_manual_timer == 0.0){
+        shooter_angle = ((double)left_adc * 120.0/1024) - 60.0;
+        aim_manual_timer = 0.0;
+    }
 
     turret_barrel_x = (starfighter_x + ((int)15/2)) + -4 * sin(M_PI * (shooter_angle *- 1) / 180);
     turret_barrel_y = 45 + -4 * cos(M_PI * (shooter_angle *- 1) / 180);
 
     //if ship is at the left edge, stop
     if(starfighter_x == 0 && moving_left){
-        ship_moving = false;
+        starfighter_moving = false;
 
     //if ship is at the right edge, stop
     }else if(starfighter_x+15 == LCD_X && !moving_left){
-        ship_moving = false;
+        starfighter_moving = false;
     }
 
-    if(ship_moving && moving_left && starfighter_x > 0){
+    if(starfighter_moving && moving_left && starfighter_x > 0){
         starfighter_x -= 1;
-    }else if(ship_moving && !moving_left && starfighter_x+15 < LCD_X){
+    }else if(starfighter_moving && !moving_left && starfighter_x+15 < LCD_X){
         starfighter_x += 1;
     }
 }
@@ -619,24 +622,24 @@ void game_status(){
 
 void ship_left(){
     //if moving right and left pressed, stop the ship
-    if(!moving_left && ship_moving){
-        ship_moving = false;
+    if(!moving_left && starfighter_moving){
+        starfighter_moving = false;
 
     //if not moving, move left
-    }else if(!ship_moving){
+    }else if(!starfighter_moving){
         moving_left = true;
-        ship_moving = true;
+        starfighter_moving = true;
     }
 }
 
 void ship_right(){
     //if moving left and right pressed, stop the ship
-    if(moving_left && ship_moving){
-        ship_moving = false;
+    if(moving_left && starfighter_moving){
+        starfighter_moving = false;
 
     //if not moving, move right
-    }else if(!ship_moving){
-        ship_moving = true;
+    }else if(!starfighter_moving){
+        starfighter_moving = true;
         moving_left = false;
     }
 }
@@ -670,18 +673,26 @@ void start_or_reset_game(){
     CLEAR_BIT(PORTB, 2);
     CLEAR_BIT(PORTB, 3);
     starfighter_x = LCD_X/2 - ((int)15/2);
-    paused = false;
+    paused = true;
+    new_game = true;
+
     plasma_count = 0;
     boulder_count = 0;
     fragment_count = 0;
     player_points = 0;
     player_lives = 5;
     spawn_asteroids();
-    ship_moving = true;
+    starfighter_moving = true;
     last_plasma_time = 1.0;
     last_flash = 0;
+    shooter_angle = 0.0;
 
-    start_timer();
+    turret_barrel_x = starfighter_x + ((int)15/2);
+    turret_barrel_y = 45 + -4;
+
+    aim_manual_timer = 0.0;
+    speed_manual_timer = 0.0;
+
 
     if(random_int(0, 50) > 25){
         moving_left = false;
@@ -713,7 +724,6 @@ void move_ship(){
 
     starfighter_x = new_x;
 }
-
 
 void print_controls(){
     send_usb_serial("\r\n");
@@ -787,6 +797,7 @@ void set_turrent_aim(){
     }
 
     shooter_angle = ((double)aim * 120.0/1024) - 60.0;
+    aim_manual_timer = get_elapsed_time();
 }
 
 void set_game_speed(){
@@ -800,6 +811,18 @@ void set_game_speed(){
 
     velocity = (double)speed/(double)1024;
     speed_manual_timer = get_elapsed_time();
+}
+
+void quit_game(){
+    clear_screen();
+    for(int i = 0; i <= LCD_Y; i++){
+        draw_line(0, i, LCD_X, i, FG_COLOUR);
+    }
+    draw_string(20, 10, "n10009671", BG_COLOUR);
+    show_screen();
+    while(1){
+
+    }
 }
 
 void serial_input(int16_t input){
@@ -836,7 +859,7 @@ void serial_input(int16_t input){
 
         //quit game
         case 'q':
-            quit = true;
+            quit_game();
             break;
 
         //set aim of turret
@@ -899,14 +922,17 @@ void process_serial_input(){
 void process(void) {
 	clear_screen();
 
+    if(new_game && !paused){
+        start_timer();
+        new_game = false;
+        send_usb_serial("\r\nGAME STARTED");
+    }
+
     if(!paused){
         process_ship_control();
-
-        process_ship();
+        process_starfighter();
         process_plasma();
         process_objects();
-
-
         process_collisions();
     }
 
@@ -945,8 +971,7 @@ void game_over(){
 
         //if right button pressed quit the game
         }else if(BIT_IS_SET(PINF, 5)){
-            quit = true;
-            return;
+            quit_game();
         }
 
         draw_string(10, 10, "GAME OVER", FG_COLOUR);
@@ -961,25 +986,15 @@ void game_over(){
     }
 }
 
-void quit_game(){
-    clear_screen();
-    for(int i = 0; i <= LCD_Y; i++){
-        draw_line(0, i, LCD_X, i, FG_COLOUR);
-    }
-    draw_string(20, 10, "n10009671", BG_COLOUR);
-    show_screen();
-}
-
-
-
 void manage_loop(){
     process_serial_input();
 
-    //if center joystick pressed game is paused
+    //if center joystick pressed toggle paused
     if (BIT_IS_SET(PINB, 0)) {
         paused = !paused;
     }
 
+    //if joystick down
     if (BIT_IS_SET(PINB, 7)) {
 		//send and display game status
         game_status();
@@ -993,10 +1008,10 @@ void manage_loop(){
 
     //if right button pressed quit the game
     if(BIT_IS_SET(PINF, 5)){
-        quit = true;
+        quit_game();
     }
 
-    if(flash_left_led){
+    if(flash_left_led && !paused){
         //if the led is starting to flash start its timer
         if(!led_timer){
             led_timer = get_elapsed_time();
@@ -1004,7 +1019,7 @@ void manage_loop(){
         left_LED_flash();
     }
 
-    if(flash_right_led){
+    if(flash_right_led && !paused){
         //if the led is starting to flash start its timer
         if(!led_timer){
             led_timer = get_elapsed_time();
@@ -1078,11 +1093,6 @@ int main(void) {
     while (1) {
         manage_loop();
         _delay_ms(100);
-
-        if(quit) break;
     }
-
-    quit_game();
-
     return 0;
 }
