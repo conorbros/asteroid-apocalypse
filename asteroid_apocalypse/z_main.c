@@ -149,10 +149,6 @@ void start_timer(){
     cycle_count = 0;
 }
 
-/**
- *  USB SERIAL COMMUNICATION - START
- */
-
 void send_usb_serial(char * msg){
     usb_serial_write((uint8_t *) msg, strlen(msg));
 }
@@ -184,16 +180,11 @@ void setup_usb_serial(void) {
 	usb_init();
 
 	while (!usb_configured()) {
-		// Block until USB is ready.
         clear_screen();
         draw_string(20, 20, "CONNECT USB", FG_COLOUR);
         show_screen();
 	}
 }
-
-/**
- *  USB SERIAL COMMUNICATION - END
- */
 
 void remove_boulder(int index){
     for(int i = index; i < boulder_count-1; i++) {
@@ -454,7 +445,6 @@ void fire_cannon(int angle){
 void process_starfighter(){
     long left_adc = adc_read(0);
 
-	// (V × R2 ÷ R1) + (M2 - M1)
     if(aim_manual_timer-get_elapsed_time() || aim_manual_timer == 0.0){
         shooter_angle = ((double)left_adc * 120.0/1024) - 60.0;
         aim_manual_timer = 0.0;
