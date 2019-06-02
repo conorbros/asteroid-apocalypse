@@ -60,6 +60,8 @@ double speed_manual_timer = 0.0;
 
 volatile uint32_t cycle_count;
 
+#define BIT(x) (1 << (x))
+
 char * starfigher =
 "               "
 "               "
@@ -184,6 +186,18 @@ void setup_usb_serial(void) {
         draw_string(20, 20, "CONNECT USB", FG_COLOUR);
         show_screen();
 	}
+}
+
+void backlight_off(){
+    TC4H = 0 >> 8;
+    OCR4A = 0 & 0xff;
+}
+
+
+
+void backlight_on(){
+    TC4H = 1023 >> 8;
+    OCR4A = 1023 & 0xff;
 }
 
 void remove_boulder(int index){
@@ -943,12 +957,12 @@ void game_over(){
     //display game status and say game over on computer screen
     game_status(false);
     send_usb_serial("\r\nGAME OVER");
-    
+
     //turn on left LED
     SET_BIT(PORTB, 2);
     //turn on right LED
     SET_BIT(PORTB, 3);
-
+    backlight_off();
     while(1){
 
         clear_screen();
@@ -958,6 +972,7 @@ void game_over(){
         if(diff >= 2.0){
             CLEAR_BIT(PORTB, 2);
             CLEAR_BIT(PORTB, 3);
+            backlight_on();
         }
 
         //if left button pressed start or reset the game
@@ -1047,6 +1062,14 @@ void enable_inputs() {
 
     // Enable input from the left thumb wheel
     adc_init();
+
+    //enable backlight
+    TC4H = 1023 >> 8;
+    OCR4C = 1023 & 0xff;
+    TCCR4A = BIT(COM4A1) | BIT(PWM4A);
+    SET_BIT(DDRC, 7);
+    TCCR4B = BIT(CS42) | BIT(CS41) | BIT(CS40);
+    TCCR4D = 0;
 }
 
 void setup_timer(void){
@@ -1066,6 +1089,7 @@ ISR(TIMER3_OVF_vect){
 }
 
 void intro_message(){
+    backlight_on();
     char * smiley =
     "ooooooooooooooooooooo"
 	"o                   o"
@@ -1108,18 +1132,17 @@ void setup( void ) {
 
 	enable_inputs();
     //	Initialise the LCD display using the default contrast setting.
-    lcd_init(LCD_HIGH_CONTRAST);
+    lcd_init(LCD_DEFAULT_CONTRAST);
     setup_timer();
     setup_usb_serial();
 	draw_all();
 }
 
 int main(void) {
-    srand(0);
     setup();
     intro_message();
     start_or_reset_game();
-
+    srand(adc_read(0));
     while (1) {
         manage_loop();
         _delay_ms(100);
