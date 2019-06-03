@@ -29,9 +29,9 @@ int get_starfighter_x();
 
 void set_starfighter_x(int i);
 
-double get_shooter_angle();
+double get_turret_angle();
 
-void set_shooter_angle(double d);
+void set_turret_angle(double d);
 
 bool get_starfighter_moving();
 

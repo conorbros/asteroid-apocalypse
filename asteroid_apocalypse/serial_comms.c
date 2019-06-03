@@ -18,6 +18,11 @@
 #include "starfighter.h"
 #include "helpers.h"
 
+/**
+ * Sends a message to the serial device
+ *  Parameters:
+ *      msg: the message to send
+ */
 void send_usb_serial(char * msg){
     usb_serial_write((uint8_t *) msg, strlen(msg));
 }
@@ -55,6 +60,18 @@ void setup_usb_serial(void) {
 	}
 }
 
+/**
+ * Sends the game status to the serial device
+ *  Parameters:
+ *      time: the time output char array
+ *      lives: the lives output char array
+ *      score: the score output char array
+ *      asteroid_count: the current asteroid count
+ *      boulder_count: the current boulder count
+ *      fragment_count: the current fragment count
+ *      plasma_count: the current plasma count
+ *      velocity: the current velocity
+ */
 void send_game_status(char * time, char * lives, char * score, int asteroid_count, int boulder_count, int fragment_count, int plasma_count, double velocity){
 
     send_usb_serial("\r\n");

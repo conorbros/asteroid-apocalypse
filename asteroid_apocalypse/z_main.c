@@ -83,51 +83,97 @@ char * plasma =
 "oo"
 "oo";
 
-
+/**
+ * Returns a random int
+ *  Parameters:
+ *      min: the lower range of the integer.
+ *      max: the upper range of the integer.
+ */
 int random_int(int min, int max){
     return (rand() % (max + 1 - min)) + min;
 }
 
+/**
+ * Returns the velocity
+ */
 double get_velocity(){
     return velocity;
 }
 
+/**
+ * Sets the velocity
+ *  Parameters:
+ *      d: the new value to set the velocity to
+ */
 void set_velocity(double d){
     velocity = d;
 }
 
+/**
+ * Returns the manual speed timer
+ */
 double get_speed_manual_timer(){
     return speed_manual_timer;
 }
 
+/**
+ * Sets the manual speed timer
+ *  Parameters:
+ *      d: the new value to set the manual speed timer to
+ */
 void set_speed_manual_timer(double d){
     speed_manual_timer = d;
 }
 
+/**
+ * Returns the manual aim timer
+ */
 double get_aim_manual_timer(){
     return speed_manual_timer;
 }
 
+/**
+ * Sets the manual aim timer
+ *  Parameters:
+ *      d: the new value to set the manual aim timer to
+ */
 void set_aim_manual_timer(double d){
     speed_manual_timer = d;
 }
 
+/**
+ * Returns the elapsed time
+ */
 double get_elapsed_time(){
     return (cycle_count * 65536.0 + TCNT3 ) * 256.0 / 8000000.0;
 }
 
+/**
+ *  Returns in seconds how long the game has been running
+ */
 int get_seconds_running(){
     return (int) get_elapsed_time() % 60;
 }
 
+/**
+ * Returns in minutes how long the game has been running
+ */
 int get_minutes_running(){
     return (int) get_elapsed_time() / 60;
 }
 
+/**
+ * Starts the games timer
+ */
 void start_timer(){
     cycle_count = 0;
 }
 
+/**
+ * Removes a boulder from the screen
+ *  *  Parameters:
+ *      i: the index to remove
+ */
 void remove_boulder(int index){
     for(int i = index; i < boulder_count-1; i++) {
         boulders_x[i] = boulders_x[i+1];
@@ -137,6 +183,11 @@ void remove_boulder(int index){
     player_points=+2;
 }
 
+/**
+ * Removes a asteroid from the screen
+ *  *  Parameters:
+ *      i: the index to remove
+ */
 void remove_asteroid(int index){
     for(int i = index; i < asteroid_count-1; i++){
         asteroids_x[i] = asteroids_x[i+1];
@@ -146,6 +197,12 @@ void remove_asteroid(int index){
     player_points=+1;
 }
 
+/**
+ * Spawns a new fragment on the screen
+ *  *  Parameters:
+ *      x: the x position to spawn the fragment at
+ *      y: the y position to spawn the fragment at
+ */
 void spawn_fragment(int x, int y){
     //ensure fragment spawns within the bounds of the screen
     if(x+3 > LCD_X){
@@ -159,6 +216,11 @@ void spawn_fragment(int x, int y){
     fragment_count++;
 }
 
+/**
+ * Removes a fragment from the screen
+ *  *  Parameters:
+ *      i: the index to remove
+ */
 void remove_fragment(int index){
     for(int i = index; i < fragment_count-1; i++){
         fragments_x[i] = fragments_x[i+1];
@@ -168,6 +230,12 @@ void remove_fragment(int index){
     player_points+=4;
 }
 
+/**
+ * Spawns a new fragment on the screen
+ *  *  Parameters:
+ *      x: the x position to spawn the boulder at
+ *      y: the y position to spawn the boulder at
+ */
 void spawn_boulder(int x, int y){
     //ensure boulder spawns within the bounds of the screen
     if(x+5 > LCD_X){
@@ -181,6 +249,9 @@ void spawn_boulder(int x, int y){
     boulder_count++;
 }
 
+/**
+ * Flashes the warning lights when the asteroids are spawning
+ */
 void flash_warning_lights(){
     int left_asteroids = 0;
     int right_asteroids = 0;
@@ -202,6 +273,9 @@ void flash_warning_lights(){
     }
 }
 
+/**
+ * Spawns 3 new asteroids
+ */
 void spawn_asteroids(){
     spawning_asteroids = true;
     asteroid_count = 3;
@@ -231,6 +305,9 @@ void spawn_asteroids(){
     flash_warning_lights();
 }
 
+/**
+ * Processes all falling objects, updating their locations
+ */
 void process_objects(){
     if(asteroid_count == 0 && fragment_count == 0 && boulder_count == 0) {
         spawn_asteroids();
@@ -263,6 +340,9 @@ void process_objects(){
     }
 }
 
+/**
+ * Controls the flashing of the left led during asteroid spawning
+ */
 void left_LED_flash(){
     double diff = get_elapsed_time()-led_timer;
 
@@ -284,6 +364,9 @@ void left_LED_flash(){
     }
 }
 
+/**
+ * Controls the flashing of the right led during asteroid spawning
+ */
 void right_LED_flash(){
     double diff = get_elapsed_time()-led_timer;
 
@@ -305,6 +388,9 @@ void right_LED_flash(){
     }
 }
 
+/**
+ * Draws all objects on the screen
+ */
 void draw_all() {
 
     //draw starfighter
@@ -337,10 +423,20 @@ void draw_all() {
     }
 }
 
+/**
+ * Determines if a plasma is off the screen
+ *  Parameters:
+ *      x: the x position of the plasma
+ *      y: the y position of the plasma
+ */
 bool is_plasma_offscreen(int x, int y){
     return x <= 0 || y <= 0;
 }
 
+/**
+ * Removes a plasma from the screen
+ *  Parameters:
+ */
 void remove_plasma(int index){
     for(int i = index; i < plasma_count-1; i++) {
         plasma_x[i] = plasma_x[i+1];
@@ -350,6 +446,9 @@ void remove_plasma(int index){
     plasma_count--;
 }
 
+/**
+ * Processes the plasma
+ */
 void process_plasma(){
     for(int i = 0; i < plasma_count; i++){
         double x1 = plasma_x[i];
@@ -369,6 +468,11 @@ void process_plasma(){
     }
 }
 
+/**
+ * Fires the starfighters cannon
+ *  Parameters:
+ *      angle: the angle to fire the cannon at
+ */
 void fire_cannon(int angle){
     if(plasma_count == 20) return;
 
@@ -383,6 +487,9 @@ void fire_cannon(int angle){
     }
 }
 
+/**
+ * Processes collisions of plasma and asteroids
+ */
 void process_asteroid_collisions(){
     for(int i = 0; i < plasma_count; i++){
         for(int j = 0; j < asteroid_count; j++){
@@ -400,6 +507,9 @@ void process_asteroid_collisions(){
     }
 }
 
+/**
+ * Processes collisions of plasma and boulders
+ */
 void process_boulder_collisions(){
     for(int i = 0; i < plasma_count; i++){
         for(int j = 0; j < boulder_count; j++){
@@ -418,6 +528,9 @@ void process_boulder_collisions(){
     }
 }
 
+/**
+ * Processes collisions of plasma and fragments
+ */
 void process_fragment_collisions(){
     for(int i = 0; i < plasma_count; i++){
         for(int j = 0; j < fragment_count; j++){
@@ -433,6 +546,9 @@ void process_fragment_collisions(){
     }
 }
 
+/**
+ * Processes collisions of plasma and falling objects
+ */
 void process_collisions(){
 
     process_asteroid_collisions();
@@ -441,6 +557,11 @@ void process_collisions(){
 
 }
 
+/**
+ * Displays the game status
+ *  Parameters:
+ *      p: whether the game is paused and to display on the teensy screen or not
+ */
 void game_status(bool p){
     char time_output[12];
     int minutes = get_minutes_running();
@@ -483,6 +604,9 @@ void game_status(bool p){
     show_screen();
 }
 
+/**
+ * Starts the game again, and resets all variables to their starting values
+ */
 void start_or_reset_game(){
     clear_screen();
     CLEAR_BIT(PORTB, 2);
@@ -508,7 +632,7 @@ void start_or_reset_game(){
     set_starfigher_moving(true);
     last_plasma_time = 1.0;
 
-    set_shooter_angle(0.0);
+    set_turret_angle(0.0);
 
     set_turret_barrel_x(get_starfighter_x() + ((int)15/2));
     set_turret_barrel_y(45 + -4);
@@ -526,14 +650,23 @@ void start_or_reset_game(){
     show_screen();
 }
 
+/**
+ * Sets the player points via a cheat
+ */
 void set_player_points(){
     player_points = get_int("Set the player's score: ");
 }
 
+/**
+ * Sets the player lives via a cheat
+ */
 void set_player_lives(){
     player_lives = get_int("Set the player's lives: ");
 }
 
+/**
+ * Moves the ship via a cheat
+ */
 void move_ship(){
     int new_x = get_int("Move the ship to coorindate: ");
 
@@ -547,6 +680,9 @@ void move_ship(){
     set_starfighter_x(new_x);
 }
 
+/**
+ * Drops a fragment via a cheat
+ */
 void drop_fragment(){
     if(fragment_count >= 20) return;
 
@@ -558,6 +694,9 @@ void drop_fragment(){
     fragment_count++;
 }
 
+/**
+ * Drops a boulder via a cheat
+ */
 void drop_boulder(){
     if(boulder_count >= 10) return;
 
@@ -566,6 +705,9 @@ void drop_boulder(){
     boulder_count++;
 }
 
+/**
+ * Drops an asteroids via a cheat
+ */
 void drop_asteroid(){
     if(asteroid_count >= 5) return;
 
@@ -574,6 +716,9 @@ void drop_asteroid(){
     asteroid_count++;
 }
 
+/**
+ * Sets the turrent aim via a cheat
+ */
 void set_turrent_aim(){
     int aim = get_int("\r\nAim: ");
 
@@ -583,10 +728,13 @@ void set_turrent_aim(){
         aim = 1023;
     }
 
-    set_shooter_angle(((double)aim * 120.0/1023) - 60.0);
+    set_turret_angle(((double)aim * 120.0/1023) - 60.0);
     aim_manual_timer = get_elapsed_time();
 }
 
+/**
+ * Sets the game speed via a cheat
+ */
 void set_game_speed(){
     int speed = get_int("\r\nSpeed: ");
 
@@ -600,6 +748,11 @@ void set_game_speed(){
     speed_manual_timer = get_elapsed_time();
 }
 
+/**
+ * Performs functions based on serial input
+ *  Parameters:
+ *      input: the inputted character
+ */
 void serial_input(int16_t input){
     switch (input){
         //move ship left
@@ -614,7 +767,7 @@ void serial_input(int16_t input){
 
         //fire cannon
         case 'w':
-            fire_cannon(get_shooter_angle());
+            fire_cannon(get_turret_angle());
             break;
 
         //send and display game status
@@ -687,6 +840,9 @@ void serial_input(int16_t input){
         }
 }
 
+/**
+ * Gets input from the serial usb device
+ */
 void process_serial_input(){
     int16_t input = usb_serial_getchar();
 	if (input >= 0) {
@@ -694,6 +850,9 @@ void process_serial_input(){
 	}
 }
 
+/**
+ * Processes the game logic
+ */
 void process(void) {
 	clear_screen();
 
@@ -715,6 +874,9 @@ void process(void) {
     show_screen();
 }
 
+/**
+ * Manages the loop and teensy control inputs
+ */
 void manage_loop(){
     process_serial_input();
 
@@ -763,6 +925,9 @@ void manage_loop(){
     process();
 }
 
+/**
+ * Enables the teensy inputs
+ */
 void enable_inputs() {
 	//	Enable input from the Center, Left, Right, Up, and Down switches of the joystick.
 	CLEAR_BIT(DDRB, 0);
@@ -790,6 +955,9 @@ void enable_inputs() {
     TCCR4D = 0;
 }
 
+/**
+ * Sets up the teensy timer
+ */
 void setup_timer(void){
     //Initialise Timer 3 in normal mode so that it overflows with a period of approximately 2.1 seconds.
 	TCCR3A = 0;
@@ -800,6 +968,9 @@ void setup_timer(void){
 	sei();
 }
 
+/**
+ * Interrupt for teensy timer
+ */
 ISR(TIMER3_OVF_vect){
     if(!paused){
         cycle_count++;
