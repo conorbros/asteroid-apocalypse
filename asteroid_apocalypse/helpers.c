@@ -18,6 +18,16 @@
 #include "serial_comms.h"
 #include "z_main.h"
 
+/**
+ *  Draws the pixel array supplied on the terminal window, starting at the left and top coordinates
+ *
+ *  Parameters:
+ *      left: the left most x coordinate of the pixel array
+ *      top: the top most y coorindate of the pixel array
+ *      width: the width of the pixel array
+ *      height: the height of the pixel array
+ *      pixels: the pixel array to be array
+ */
 void draw_pixels(int left, int top, int width, int height, char bitmap[], bool space_is_transparent) {
     for (int j = 0; j < height; j++) {
         for (int i = 0; i < width; i++) {
@@ -30,12 +40,34 @@ void draw_pixels(int left, int top, int width, int height, char bitmap[], bool s
     }
 };
 
+/**
+ *  Determines whether the coordinate in the supplied pixel array is opaque or not
+ */
 bool is_opaque(int x, int y, int x0, int y0, int w0, int h0, char pixels[]){
     return x >= x0 && x < x0 + w0
         && y >= y0 && y < y0 + h0
         && pixels[(x-x0) + (y-y0)*w0] != ' ';
 }
 
+/**
+ *  Determines whether there is a collision between any pixels in the supplied pixel arrays.
+ *
+ *  Parameters:
+ *      x0: the left most x coordinate of the first pixel array
+ *      y0: the top most y coordinate of the first pixel array
+ *      w0: the width of the first pixel array
+ *      h0: the height of the first pixel array
+ *      pixels0: the first pixel array
+ *
+ *      x1: the left most x coordinate of the second pixel array
+ *      y1: the top most y coordinate of the second pixel array
+ *      w1: the width of the second pixel array
+ *      h1: the height of the second pixel array
+ *      pixels1: the second pixel array
+ *
+ *  Returns:
+ *      true if collision, false if not
+ */
 bool pixel_collision(int x0, int y0, int w0, int h0, char pixels0[], int x1, int y1, int w1, int h1, char pixels1[]){
     for ( int j = 0; j < h0; j++ ){
         for (int i = 0; i < w0; i++){
@@ -51,6 +83,9 @@ bool pixel_collision(int x0, int y0, int w0, int h0, char pixels0[], int x1, int
     return false;
 }
 
+/**
+ * Prints the controls to the usb serial device
+ */
 void print_controls(){
     send_usb_serial("\r\n");
     send_usb_serial("Teensy controls: \r\n");
@@ -86,6 +121,9 @@ void print_controls(){
     send_usb_serial("i: drop fragment\r\n");
 }
 
+/**
+ * Quits the game and waits for teensy to be turned off
+ */
 void quit_game(){
     clear_screen();
     for(int i = 0; i <= LCD_Y; i++){
@@ -98,16 +136,25 @@ void quit_game(){
     }
 }
 
+/**
+ * Turns off the teensy backlight
+ */
 void backlight_off(){
     TC4H = 0 >> 8;
     OCR4A = 0 & 0xff;
 }
 
+/**
+ * Turns on the teensy backlight
+ */
 void backlight_on(){
     TC4H = 1023 >> 8;
     OCR4A = 1023 & 0xff;
 }
 
+/**
+ * Displays the game over screen and waits for input
+ */
 void game_over(){
     double led_start_time = get_elapsed_time();
     int count = 0;
@@ -155,6 +202,9 @@ void game_over(){
     }
 }
 
+/**
+ * Displays the intro message
+ */
 void intro_message(){
     backlight_on();
     char * smiley =

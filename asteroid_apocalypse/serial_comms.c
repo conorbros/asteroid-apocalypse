@@ -27,6 +27,11 @@ void send_usb_serial(char * msg){
     usb_serial_write((uint8_t *) msg, strlen(msg));
 }
 
+/**
+ * Gets an input from the usb serial device
+ *  Parameters:
+ *      wait_msg: The message to display when asking for input
+ */
 int get_int(char * wait_msg){
     bool complete = false;
     int result = 0;
@@ -50,6 +55,9 @@ int get_int(char * wait_msg){
     return result;
 }
 
+/**
+ * Sets up the usb serial communication
+ */
 void setup_usb_serial(void) {
 	usb_init();
 
