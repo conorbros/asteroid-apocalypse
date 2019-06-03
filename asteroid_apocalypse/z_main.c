@@ -232,8 +232,11 @@ void spawn_asteroids(){
 }
 
 void process_objects(){
-    if(spawning_asteroids) return;
+    if(asteroid_count == 0 && fragment_count == 0 && boulder_count == 0) {
+        spawn_asteroids();
+    }
 
+    if(spawning_asteroids) return;
     for(int i = 0; i < asteroid_count; i++){
         asteroids_y[i] = asteroids_y[i]+velocity;
         //if asteroid hits shield
@@ -241,10 +244,6 @@ void process_objects(){
             remove_asteroid(i);
             player_lives--;
         }
-    }
-
-    if(asteroid_count == 0 && fragment_count == 0 && boulder_count == 0) {
-        spawn_asteroids();
     }
 
     for(int i = 0; i < boulder_count; i++){
@@ -268,7 +267,7 @@ void left_LED_flash(){
     double diff = get_elapsed_time()-led_timer;
 
     //clear the left led variables ready for the next flash
-    if(diff >= 2.0){
+    if(diff > 2.0){
         flash_left_led = false;
         led_timer = 0.0;
         last_flash = 0.0;
@@ -289,7 +288,7 @@ void right_LED_flash(){
     double diff = get_elapsed_time()-led_timer;
 
     //clear the right led variables ready for the next flash
-    if(diff >= 0.0){
+    if(diff > 2.0){
         flash_right_led = false;
         led_timer = 0.0;
         last_flash = 0.0;
@@ -375,7 +374,7 @@ void fire_cannon(int angle){
 
     double diff = get_elapsed_time() - last_plasma_time;
 
-    if(diff > 0.2){
+    if(diff >= 0.2){
         plasma_x[plasma_count] = get_turret_barrel_x();
         plasma_y[plasma_count] = get_turret_barrel_y();
         plasma_angle[plasma_count] = angle;
@@ -502,6 +501,7 @@ void start_or_reset_game(){
     player_points = 0;
     player_lives = 5;
     last_flash = 0.0;
+    cycle_count = 0;
 
     spawn_asteroids();
 
@@ -742,7 +742,7 @@ void manage_loop(){
 
     if(flash_left_led && !paused){
         //if the led is starting to flash start its timer
-        if(!led_timer){
+        if(led_timer == 0.0){
             led_timer = get_elapsed_time();
         }
         left_LED_flash();
@@ -750,7 +750,7 @@ void manage_loop(){
 
     if(flash_right_led && !paused){
         //if the led is starting to flash start its timer
-        if(!led_timer){
+        if(led_timer == 0.0){
             led_timer = get_elapsed_time();
         }
         right_LED_flash();
