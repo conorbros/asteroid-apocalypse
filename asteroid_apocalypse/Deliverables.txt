@@ -24,7 +24,7 @@ Input Sequence  : Start the game and unpause by pressing the center joystick
 Expected Outcome: 3 asteroids can be observed falling from the top of the screen 2 seconds after the the game starts, they spawn at random positions and scroll smoothly into view, they do not go outside of the border of the screen and fall downwards only.
 
 Test 6
-Category        : 4.v, 4.vi, 4.viii, 4.ix, 4.x, 4.xi
+Category        : 4.v, 4.vi, 4.viii, 4.ix, 4.x
 Input Sequence  : Set the game speed to 0 using the right wheel, and shoot one asteroid, and then a boulder, then one fragment. Set the game speed to moving again. After the objects have hit the shield, send game status to the game with joystick down.
 Expected Outcome: After shooting the asteroid, boulder and fragment, they can observed splitting in that order. When the objects hit the shield, they disappear, when this happens the lives can be observed going down in the game status. The asteroids are 7x7 shaped like diamond, the boulders 5x5 shaped like diamond, fragments 3x3 shaped like plus.
 

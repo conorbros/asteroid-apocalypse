@@ -110,7 +110,7 @@ void send_game_status(char * time, char * lives, char * score, int asteroid_coun
     send_usb_serial(formatted_string);
     send_usb_serial("\r\n");
 
-    sprintf(formatted_string, "Aim: %d", (int)get_shooter_angle());
+    sprintf(formatted_string, "Aim: %d", (int)get_turret_angle());
     send_usb_serial(formatted_string);
     send_usb_serial("\r\n");
 
